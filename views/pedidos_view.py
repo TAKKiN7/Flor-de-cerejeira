@@ -1,0 +1,320 @@
+import customtkinter as ctk
+from tkinter import ttk, messagebox
+from config.settings import PALETTE, get_color
+from services.pedidos_service import PedidosService
+from components.pedido_form_modal import PedidoFormModal
+
+class PedidosView(ctk.CTkFrame):
+    """Módulo completo de Gerenciamento de Pedidos com Tabela, CRUD e Persistência em JSON."""
+    
+    def __init__(self, master, base_dir=None, **kwargs):
+        super().__init__(master, fg_color=PALETTE["main_bg"], corner_radius=0, **kwargs)
+        
+        self.service = PedidosService(base_dir=base_dir)
+        self.pedidos_cache = []
+        
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(2, weight=1)
+        
+        # 1. Cabeçalho do Módulo
+        self.criar_cabecalho()
+        
+        # 2. Barra de Ferramentas (Pesquisa e Botões de Ação)
+        self.criar_barra_ferramentas()
+        
+        # 3. Tabela de Pedidos (Treeview Estilizado)
+        self.criar_tabela_pedidos()
+        
+        # Carregar dados iniciais
+        self.atualizar_tabela()
+
+    def criar_cabecalho(self):
+        """Cria o cabeçalho superior do módulo de pedidos."""
+        header_frame = ctk.CTkFrame(self, fg_color="transparent")
+        header_frame.grid(row=0, column=0, sticky="ew", padx=40, pady=(28, 6))
+        header_frame.grid_columnconfigure(0, weight=1)
+        
+        lbl_title = ctk.CTkLabel(
+            header_frame,
+            text="Gestão de Pedidos",
+            font=ctk.CTkFont(family="Georgia", size=28, weight="bold"),
+            text_color=PALETTE["title_text"],
+            anchor="w"
+        )
+        lbl_title.pack(anchor="w")
+        
+        lbl_sub = ctk.CTkLabel(
+            header_frame,
+            text="Gerencie as encomendas do atelier, acompanhe entregas e valores.",
+            font=ctk.CTkFont(family="Segoe UI", size=14),
+            text_color=PALETTE["subtitle_text"],
+            anchor="w"
+        )
+        lbl_sub.pack(anchor="w", pady=(2, 0))
+
+    def criar_barra_ferramentas(self):
+        """Cria os controles de busca e botões de Novo, Editar e Excluir."""
+        tools_frame = ctk.CTkFrame(self, fg_color="transparent")
+        tools_frame.grid(row=1, column=0, sticky="ew", padx=40, pady=(16, 16))
+        tools_frame.grid_columnconfigure(0, weight=1)
+        
+        # Campo de Pesquisa
+        self.entry_pesquisa = ctk.CTkEntry(
+            tools_frame,
+            placeholder_text="🔍 Pesquisar por cliente ou produto...",
+            height=42,
+            corner_radius=12,
+            border_color=PALETTE["card_border"],
+            font=ctk.CTkFont(size=13)
+        )
+        self.entry_pesquisa.grid(row=0, column=0, sticky="ew", padx=(0, 16))
+        self.entry_pesquisa.bind("<KeyRelease>", self.filtrar_pedidos)
+        
+        # Container de Botões
+        actions_frame = ctk.CTkFrame(tools_frame, fg_color="transparent")
+        actions_frame.grid(row=0, column=1, sticky="e")
+        
+        # Botão Excluir
+        btn_excluir = ctk.CTkButton(
+            actions_frame,
+            text="🗑️ Excluir",
+            height=42,
+            corner_radius=12,
+            fg_color="transparent",
+            border_color="#E57373",
+            border_width=1,
+            text_color="#C62828",
+            hover_color="#FFEBEE",
+            font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
+            command=self.acao_excluir
+        )
+        btn_excluir.pack(side="left", padx=4)
+        
+        # Botão Editar
+        btn_editar = ctk.CTkButton(
+            actions_frame,
+            text="✏️ Editar",
+            height=42,
+            corner_radius=12,
+            fg_color="transparent",
+            border_color=PALETTE["card_border"],
+            border_width=1,
+            text_color=PALETTE["inactive_text"],
+            hover_color=PALETTE["inactive_hover"],
+            font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
+            command=self.acao_editar
+        )
+        btn_editar.pack(side="left", padx=4)
+        
+        # Botão Adicionar
+        btn_novo = ctk.CTkButton(
+            actions_frame,
+            text="+ Novo Pedido",
+            height=42,
+            corner_radius=12,
+            fg_color=PALETTE["active_pill"],
+            hover_color=PALETTE["active_pill_hover"],
+            text_color="#FFFFFF",
+            font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
+            command=self.acao_adicionar
+        )
+        btn_novo.pack(side="left", padx=(4, 0))
+
+    def criar_tabela_pedidos(self):
+        """Cria e estiliza a tabela ttk.Treeview com barras de rolagem."""
+        table_container = ctk.CTkFrame(
+            self,
+            fg_color=PALETTE["card_bg"],
+            border_color=PALETTE["card_border"],
+            border_width=1,
+            corner_radius=16
+        )
+        table_container.grid(row=2, column=0, sticky="nsew", padx=40, pady=(0, 30))
+        table_container.grid_columnconfigure(0, weight=1)
+        table_container.grid_rowconfigure(0, weight=1)
+        
+        # Estilização do Treeview usando cores puras via get_color
+        self.atualizar_estilo_tema()
+        
+        colunas = ("id", "data_pedido", "nome_cliente", "produto", "valor_produto", "data_entrega")
+        
+        self.tree = ttk.Treeview(
+            table_container,
+            columns=colunas,
+            show="headings",
+            style="Pedidos.Treeview",
+            selectmode="browse"
+        )
+        
+        # Definição das colunas
+        self.tree.heading("id", text="ID Pedido", anchor="w")
+        self.tree.heading("data_pedido", text="Data do Pedido", anchor="w")
+        self.tree.heading("nome_cliente", text="Nome do Cliente", anchor="w")
+        self.tree.heading("produto", text="Produto", anchor="w")
+        self.tree.heading("valor_produto", text="Valor do Produto", anchor="w")
+        self.tree.heading("data_entrega", text="Data de Entrega", anchor="w")
+        
+        self.tree.column("id", width=90, minwidth=80, anchor="w")
+        self.tree.column("data_pedido", width=120, minwidth=100, anchor="w")
+        self.tree.column("nome_cliente", width=200, minwidth=140, anchor="w")
+        self.tree.column("produto", width=250, minwidth=180, anchor="w")
+        self.tree.column("valor_produto", width=140, minwidth=110, anchor="w")
+        self.tree.column("data_entrega", width=130, minwidth=110, anchor="w")
+        
+        # Scrollbar vertical estilizada em rosa
+        scrollbar = ctk.CTkScrollbar(
+            table_container,
+            orientation="vertical",
+            command=self.tree.yview,
+            button_color=PALETTE["active_pill"],
+            button_hover_color=PALETTE["active_pill_hover"]
+        )
+        self.tree.configure(yscrollcommand=scrollbar.set)
+        
+        self.tree.grid(row=0, column=0, sticky="nsew", padx=16, pady=16)
+        scrollbar.grid(row=0, column=1, sticky="ns", pady=16)
+        
+        # Evento de duplo clique para editar
+        self.tree.bind("<Double-1>", lambda e: self.acao_editar())
+
+    def atualizar_estilo_tema(self, modo=None):
+        """Atualiza as cores da tabela TTK de acordo com o modo claro/escuro."""
+        if modo is None:
+            modo = ctk.get_appearance_mode()
+            
+        style = ttk.Style()
+        style.theme_use("default")
+        
+        sb_bg = get_color(PALETTE["sidebar_bg"], modo)
+        br_title = get_color(PALETTE["brand_title"], modo)
+        t_text = get_color(PALETTE["title_text"], modo)
+        in_hover = get_color(PALETTE["inactive_hover"], modo)
+        card_bg = get_color(PALETTE["card_bg"], modo)
+        act_pill = get_color(PALETTE["active_pill"], modo)
+        
+        style.configure(
+            "Pedidos.Treeview.Heading",
+            background=sb_bg,
+            foreground=br_title,
+            font=("Segoe UI", 11, "bold"),
+            rowheight=38,
+            relief="flat"
+        )
+        style.map("Pedidos.Treeview.Heading", background=[('active', in_hover)])
+        
+        style.configure(
+            "Pedidos.Treeview",
+            background=card_bg,
+            fieldbackground=card_bg,
+            foreground=t_text,
+            font=("Segoe UI", 11),
+            rowheight=36,
+            borderwidth=0
+        )
+        style.map(
+            "Pedidos.Treeview",
+            background=[('selected', act_pill), ('focus', act_pill)],
+            foreground=[('selected', '#FFFFFF'), ('focus', '#FFFFFF')]
+        )
+
+    def atualizar_tabela(self):
+        """Carrega os dados do serviço e redesenha as linhas na tabela."""
+        self.pedidos_cache = self.service.carregar_pedidos()
+        self.renderizar_linhas(self.pedidos_cache)
+
+    def renderizar_linhas(self, lista_pedidos):
+        """Limpa a tabela e insere as linhas fornecidas."""
+        for item in self.tree.get_children():
+            self.tree.delete(item)
+            
+        for p in lista_pedidos:
+            try:
+                val_num = float(p.get("valor_produto", 0))
+                val_str = f"R$ {val_num:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+            except (ValueError, TypeError):
+                val_str = f"R$ {p.get('valor_produto', '0,00')}"
+                
+            self.tree.insert(
+                "",
+                "end",
+                iid=p["id"],
+                values=(
+                    p.get("id", ""),
+                    p.get("data_pedido", "-"),
+                    p.get("nome_cliente", "-"),
+                    p.get("produto", "-"),
+                    val_str,
+                    p.get("data_entrega", "-")
+                )
+            )
+
+    def filtrar_pedidos(self, event=None):
+        """Filtra as linhas exibidas conforme a busca."""
+        termo = self.entry_pesquisa.get().strip().lower()
+        if not termo:
+            self.renderizar_linhas(self.pedidos_cache)
+            return
+            
+        filtrados = [
+            p for p in self.pedidos_cache
+            if termo in p.get("nome_cliente", "").lower()
+            or termo in p.get("produto", "").lower()
+            or termo in p.get("id", "").lower()
+        ]
+        self.renderizar_linhas(filtrados)
+
+    def acao_adicionar(self):
+        """Abre o formulário modal para cadastrar um novo pedido."""
+        def on_save(dados):
+            self.service.adicionar_pedido(
+                data_pedido=dados["data_pedido"],
+                nome_cliente=dados["nome_cliente"],
+                produto=dados["produto"],
+                valor_produto=dados["valor_produto"],
+                data_entrega=dados["data_entrega"]
+            )
+            self.atualizar_tabela()
+            messagebox.showinfo("Sucesso", "Pedido cadastrado com sucesso!", parent=self)
+
+        modal = PedidoFormModal(self, title="Adicionar Novo Pedido", on_save=on_save)
+
+    def acao_editar(self):
+        """Abre o formulário modal para editar o pedido selecionado."""
+        selecionado = self.tree.selection()
+        if not selecionado:
+            messagebox.showwarning("Seleção Necessária", "Por favor, selecione um pedido na tabela para editar.", parent=self)
+            return
+            
+        pedido_id = selecionado[0]
+        pedido_atual = next((p for p in self.pedidos_cache if p["id"] == pedido_id), None)
+        
+        if not pedido_atual:
+            return
+
+        def on_save(dados):
+            self.service.atualizar_pedido(
+                pedido_id=pedido_id,
+                data_pedido=dados["data_pedido"],
+                nome_cliente=dados["nome_cliente"],
+                produto=dados["produto"],
+                valor_produto=dados["valor_produto"],
+                data_entrega=dados["data_entrega"]
+            )
+            self.atualizar_tabela()
+            messagebox.showinfo("Sucesso", "Pedido atualizado com sucesso!", parent=self)
+
+        modal = PedidoFormModal(self, title=f"Editar Pedido {pedido_id}", pedido_data=pedido_atual, on_save=on_save)
+
+    def acao_excluir(self):
+        """Confirma e remove o pedido selecionado."""
+        selecionado = self.tree.selection()
+        if not selecionado:
+            messagebox.showwarning("Seleção Necessária", "Por favor, selecione um pedido na tabela para excluir.", parent=self)
+            return
+            
+        pedido_id = selecionado[0]
+        confirmar = messagebox.askyesno("Confirmar Exclusão", f"Tem certeza que deseja remover o pedido {pedido_id}?", parent=self)
+        if confirmar:
+            if self.service.remover_pedido(pedido_id):
+                self.atualizar_tabela()
+                messagebox.showinfo("Sucesso", "Pedido removido com sucesso!", parent=self)
