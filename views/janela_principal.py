@@ -9,6 +9,9 @@ from views.generic_module_view import GenericModuleView
 from views.pedidos_view import PedidosView
 from views.clientes_view import ClientesView
 from views.agenda_view import AgendaView
+from views.estoque_view import EstoqueView
+from views.financeiro_view import FinanceiroView
+from views.orcamento_view import OrcamentoView
 
 class JanelaFlorDeCerejeira(ctk.CTk):
     """Janela Principal da aplicação Flor de Cerejeira Creative Atelier."""
@@ -58,11 +61,11 @@ class JanelaFlorDeCerejeira(ctk.CTk):
             from build_assets import generate_all_assets
             generate_all_assets(self.base_dir)
             
-        # Carregar logo da paleta
+        # Carregar logo da loja
         logo_path = os.path.join(assets_dir, "logo_palette.png")
         if os.path.exists(logo_path):
             img_logo = Image.open(logo_path)
-            self.img_logo = ctk.CTkImage(light_image=img_logo, dark_image=img_logo, size=(48, 48))
+            self.img_logo = ctk.CTkImage(light_image=img_logo, dark_image=img_logo, size=(64, 64))
         else:
             self.img_logo = None
             
@@ -76,7 +79,7 @@ class JanelaFlorDeCerejeira(ctk.CTk):
             
         # Carregar ícones do menu
         self.icons = {}
-        items = ["boas_vindas", "pedidos", "clientes", "agenda", "estoque", "financeiro", "configuracoes", "suporte"]
+        items = ["boas_vindas", "orcamento", "pedidos", "clientes", "agenda", "estoque", "financeiro", "configuracoes", "suporte"]
         for item in items:
             norm_p = os.path.join(icons_dir, f"{item}_normal.png")
             act_p = os.path.join(icons_dir, f"{item}_active.png")
@@ -136,6 +139,7 @@ class JanelaFlorDeCerejeira(ctk.CTk):
         
         main_menu_items = [
             ("boas_vindas", "Boas-vindas"),
+            ("orcamento", "Orçamento"),
             ("pedidos", "Pedidos"),
             ("clientes", "Clientes"),
             ("agenda", "Agenda"),
@@ -219,11 +223,12 @@ class JanelaFlorDeCerejeira(ctk.CTk):
         
         # Instanciar cada view
         self.views["boas_vindas"] = BoasVindasView(self.container, mascot_image=self.img_mascot)
+        self.views["orcamento"] = OrcamentoView(self.container, base_dir=self.base_dir)
         self.views["pedidos"] = PedidosView(self.container, base_dir=self.base_dir)
         self.views["clientes"] = ClientesView(self.container, base_dir=self.base_dir)
         self.views["agenda"] = AgendaView(self.container, base_dir=self.base_dir)
-        self.views["estoque"] = GenericModuleView(self.container, "Controle de Estoque", "Gerencie tintas, pincéis, telas e insumos criativos.")
-        self.views["financeiro"] = GenericModuleView(self.container, "Gestão Financeira", "Visualize receitas, despesas e fluxo de caixa.")
+        self.views["estoque"] = EstoqueView(self.container, base_dir=self.base_dir)
+        self.views["financeiro"] = FinanceiroView(self.container, base_dir=self.base_dir)
         
         for view in self.views.values():
             view.grid(row=0, column=0, sticky="nsew")
@@ -242,6 +247,8 @@ class JanelaFlorDeCerejeira(ctk.CTk):
             view = self.views[chave_aba]
             if hasattr(view, "atualizar_tabela"):
                 view.atualizar_tabela()
+            if hasattr(view, "atualizar_tabela_mensal"):
+                view.atualizar_tabela_mensal()
             if hasattr(view, "atualizar_calendario"):
                 view.atualizar_calendario()
             view.tkraise()

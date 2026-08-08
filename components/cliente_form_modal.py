@@ -1,12 +1,12 @@
 import customtkinter as ctk
 from tkinter import messagebox
 from datetime import datetime
-from config.settings import PALETTE
+from config.settings import PALETTE, centralizar_janela
 
 class ClienteFormModal(ctk.CTkToplevel):
     """Janela modal para criação e edição de clientes."""
     
-    def __init__(self, parent, title="Novo Cliente", cliente_data=None, on_save=None):
+    def __init__(self, parent, title="Novo Cliente", cliente_data=None, on_save=None, nome_inicial=None):
         super().__init__(parent)
         
         self.on_save = on_save
@@ -18,6 +18,7 @@ class ClienteFormModal(ctk.CTkToplevel):
         self.configure(fg_color=PALETTE["main_bg"])
         
         # Centralizar em relação à janela principal
+        centralizar_janela(self, 480, 540, parent)
         self.transient(parent)
         self.grab_set()
         
@@ -60,6 +61,8 @@ class ClienteFormModal(ctk.CTkToplevel):
         self.entry_nome.pack(fill="x", pady=(0, 14))
         if cliente_data and "nome_cliente" in cliente_data:
             self.entry_nome.insert(0, cliente_data["nome_cliente"])
+        elif nome_inicial:
+            self.entry_nome.insert(0, nome_inicial)
             
         # 2. Endereço
         ctk.CTkLabel(

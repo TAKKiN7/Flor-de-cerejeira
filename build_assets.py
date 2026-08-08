@@ -183,6 +183,15 @@ def draw_vector_icon(name, color=(90, 69, 73), size=64):
             for dy in [140, 180]:
                 draw.ellipse((dx - 12, dy - 12, dx + 12, dy + 12), fill=color)
 
+    elif name == "orcamento":
+        # Documento / Proposta
+        x1, y1, x2, y2 = 50, 40, 206, 220
+        draw.rounded_rectangle((x1, y1, x2, y2), radius=14, outline=color, width=lw)
+        # Linhas de documento
+        draw.line([(80, 85), (176, 85)], fill=color, width=lw)
+        draw.line([(80, 130), (176, 130)], fill=color, width=lw)
+        draw.line([(80, 175), (140, 175)], fill=color, width=lw)
+
     res = img.resize((size, size), Image.Resampling.LANCZOS)
     return res
 
@@ -191,16 +200,25 @@ def generate_all_assets(base_dir):
     os.makedirs(os.path.join(base_dir, "assets", "icons"), exist_ok=True)
     
     # 1. Mascote circular
-    orig_mascot = r'C:\Users\TK\.gemini\antigravity-ide\brain\73a71cc9-508c-444c-9bf1-a7d738ab6b77\hanna_mascot_1785885056294.png'
     out_mascot = os.path.join(base_dir, "assets", "hanna_mascot.png")
-    create_circular_mascot(orig_mascot, out_mascot, size=(300, 300))
-    
-    # 2. Logo da paleta
-    logo_img = draw_palette_logo(size=96)
-    logo_img.save(os.path.join(base_dir, "assets", "logo_palette.png"))
+    fotos_mascot = os.path.join(base_dir, "Fotos", "mascote.png")
+    if os.path.exists(fotos_mascot):
+        create_circular_mascot(fotos_mascot, out_mascot, size=(300, 300))
+    elif not os.path.exists(out_mascot):
+        mascot_img = draw_palette_logo(size=300)
+        mascot_img.save(out_mascot)
+
+    # 2. Logo da loja
+    out_logo = os.path.join(base_dir, "assets", "logo_palette.png")
+    fotos_logo = os.path.join(base_dir, "Fotos", "logo_da_loja.png")
+    if os.path.exists(fotos_logo):
+        create_circular_mascot(fotos_logo, out_logo, size=(128, 128))
+    elif not os.path.exists(out_logo):
+        logo_img = draw_palette_logo(size=96)
+        logo_img.save(out_logo)
     
     # 3. Ícones do menu (Normal e Ativo)
-    icon_names = ["boas_vindas", "pedidos", "clientes", "agenda", "estoque", "financeiro", "configuracoes", "suporte"]
+    icon_names = ["boas_vindas", "orcamento", "pedidos", "clientes", "agenda", "estoque", "financeiro", "configuracoes", "suporte"]
     color_normal = (90, 69, 73)   # #5A4549 (Brownish mauve)
     color_active = (255, 255, 255) # White
     

@@ -31,3 +31,35 @@ def get_color(color_val, mode=None):
     if isinstance(color_val, (list, tuple)):
         return color_val[1] if mode == "Dark" else color_val[0]
     return color_val
+
+def centralizar_janela(window, width, height, parent=None):
+    """Centraliza a janela modal (CTkToplevel) no centro exato da janela pai ou da tela."""
+    window.update_idletasks()
+    
+    if parent is None and hasattr(window, "master"):
+        parent = window.master
+        
+    if parent:
+        try:
+            root = parent.winfo_toplevel()
+            root.update_idletasks()
+            p_w = root.winfo_width()
+            p_h = root.winfo_height()
+            p_x = root.winfo_x()
+            p_y = root.winfo_y()
+            
+            if p_w > 100 and p_h > 100:
+                pos_x = p_x + (p_w - width) // 2
+                pos_y = p_y + (p_h - height) // 2
+                pos_x = max(0, pos_x)
+                pos_y = max(0, pos_y)
+                window.geometry(f"{width}x{height}+{pos_x}+{pos_y}")
+                return
+        except Exception:
+            pass
+
+    screen_w = window.winfo_screenwidth()
+    screen_h = window.winfo_screenheight()
+    pos_x = max(0, (screen_w - width) // 2)
+    pos_y = max(0, (screen_h - height) // 2)
+    window.geometry(f"{width}x{height}+{pos_x}+{pos_y}")

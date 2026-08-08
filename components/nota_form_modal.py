@@ -1,7 +1,7 @@
 import customtkinter as ctk
 from tkinter import messagebox
 from datetime import datetime
-from config.settings import PALETTE
+from config.settings import PALETTE, centralizar_janela
 
 class NotaFormModal(ctk.CTkToplevel):
     """Janela modal para criação de uma nova nota/lembrete na agenda."""
@@ -17,6 +17,7 @@ class NotaFormModal(ctk.CTkToplevel):
         self.resizable(False, False)
         self.configure(fg_color=PALETTE["main_bg"])
         
+        centralizar_janela(self, 450, 440, parent)
         self.transient(parent)
         self.grab_set()
         

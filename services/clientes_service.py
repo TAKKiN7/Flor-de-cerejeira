@@ -14,7 +14,7 @@ class ClientesService:
     def garantir_arquivo_dados(self):
         """Cria o diretório e o arquivo JSON inicial com dados de exemplo caso não existam."""
         os.makedirs(self.data_dir, exist_ok=True)
-        if not os.path.exists(self.data_file):
+        if not os.path.exists(self.data_file) or os.path.getsize(self.data_file) <= 2:
             dados_iniciais = [
                 {
                     "id": "CLI-1001",

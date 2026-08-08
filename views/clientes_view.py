@@ -2,15 +2,21 @@ import customtkinter as ctk
 from tkinter import ttk, messagebox
 from config.settings import PALETTE, get_color
 from services.clientes_service import ClientesService
+from services.pedidos_service import PedidosService
+from services.pdf_service import PDFService
 from components.cliente_form_modal import ClienteFormModal
+from components.cliente_pedidos_modal import ClientePedidosModal
+from components.pedido_form_modal import PedidoFormModal
 
 class ClientesView(ctk.CTkFrame):
-    """Módulo completo de Gerenciamento de Clientes com Tabela, CRUD e Persistência em JSON."""
+    """Módulo completo de Gerenciamento de Clientes com Tabela, CRUD, Persistência em JSON e Visualização de Pedidos."""
     
     def __init__(self, master, base_dir=None, **kwargs):
         super().__init__(master, fg_color=PALETTE["main_bg"], corner_radius=0, **kwargs)
         
+        self.base_dir = base_dir
         self.service = ClientesService(base_dir=base_dir)
+        self.pedidos_service = PedidosService(base_dir=base_dir)
         self.clientes_cache = []
         
         self.grid_columnconfigure(0, weight=1)
@@ -45,7 +51,7 @@ class ClientesView(ctk.CTkFrame):
         
         lbl_sub = ctk.CTkLabel(
             header_frame,
-            text="Consulte e organize a lista de clientes, contatos e histórico de pedidos.",
+            text="Consulte e organize a lista de clientes. Dê duplo clique no cliente para ver suas encomendas.",
             font=ctk.CTkFont(family="Segoe UI", size=14),
             text_color=PALETTE["subtitle_text"],
             anchor="w"
@@ -93,7 +99,7 @@ class ClientesView(ctk.CTkFrame):
         # Botão Editar
         btn_editar = ctk.CTkButton(
             actions_frame,
-            text="✏️ Editar",
+            text="✏️ Editar Cadastro",
             height=42,
             corner_radius=12,
             fg_color="transparent",
@@ -106,6 +112,22 @@ class ClientesView(ctk.CTkFrame):
         )
         btn_editar.pack(side="left", padx=4)
         
+        # Botão Exportar PDF
+        btn_pdf = ctk.CTkButton(
+            actions_frame,
+            text="📄 PDF",
+            height=42,
+            corner_radius=12,
+            fg_color="transparent",
+            border_color=PALETTE["card_border"],
+            border_width=1,
+            text_color=PALETTE["inactive_text"],
+            hover_color=PALETTE["inactive_hover"],
+            font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
+            command=self.acao_exportar_pdf
+        )
+        btn_pdf.pack(side="left", padx=4)
+
         # Botão Adicionar
         btn_novo = ctk.CTkButton(
             actions_frame,
@@ -172,8 +194,8 @@ class ClientesView(ctk.CTkFrame):
         self.tree.grid(row=0, column=0, sticky="nsew", padx=16, pady=16)
         scrollbar.grid(row=0, column=1, sticky="ns", pady=16)
         
-        # Evento de duplo clique para editar
-        self.tree.bind("<Double-1>", lambda e: self.acao_editar())
+        # Evento de duplo clique para abrir a janela de pedidos do cliente
+        self.tree.bind("<Double-1>", lambda e: self.mostrar_pedidos_cliente())
 
     def atualizar_estilo_tema(self, modo=None):
         """Atualiza as cores da tabela TTK de acordo com o modo claro/escuro."""
@@ -255,6 +277,59 @@ class ClientesView(ctk.CTkFrame):
         ]
         self.renderizar_linhas(filtrados)
 
+    def mostrar_pedidos_cliente(self):
+        """Exibe a janela modal com os pedidos em aberto / registrados do cliente selecionado."""
+        selecionado = self.tree.selection()
+        if not selecionado:
+            return
+            
+        cliente_id = selecionado[0]
+        cliente_atual = next((c for c in self.clientes_cache if c["id"] == cliente_id), None)
+        
+        if not cliente_atual:
+            return
+
+        def abrir_novo_pedido_para_cliente(c_data):
+            def on_save_pedido(dados):
+                try:
+                    self.pedidos_service.adicionar_pedido(
+                        data_pedido=dados["data_pedido"],
+                        nome_cliente=dados["nome_cliente"],
+                        produto=dados["produto"],
+                        valor_produto=dados["valor_produto"],
+                        data_entrega=dados["data_entrega"],
+                        itens_usados=dados.get("itens_usados", [])
+                    )
+                    # Atualizar data do último pedido do cliente
+                    self.service.atualizar_cliente(
+                        cliente_id=c_data["id"],
+                        nome_cliente=c_data["nome_cliente"],
+                        endereco=c_data.get("endereco", "-"),
+                        data_ultimo_pedido=dados["data_pedido"],
+                        contato=c_data.get("contato", "-")
+                    )
+                    self.atualizar_tabela()
+                    messagebox.showinfo("Sucesso", "Pedido cadastrado para o cliente com sucesso!", parent=self)
+                except Exception as ex:
+                    messagebox.showerror("Erro ao Criar Pedido", str(ex), parent=self)
+
+            modal_ped = PedidoFormModal(
+                self,
+                title=f"Novo Pedido - {c_data['nome_cliente']}",
+                on_save=on_save_pedido,
+                estoque_service=self.pedidos_service.estoque_service,
+                clientes_service=self.service,
+                base_dir=self.base_dir,
+                cliente_preselecionado=c_data["nome_cliente"]
+            )
+
+        modal = ClientePedidosModal(
+            self,
+            cliente_data=cliente_atual,
+            pedidos_service=self.pedidos_service,
+            on_novo_pedido=abrir_novo_pedido_para_cliente
+        )
+
     def acao_adicionar(self):
         """Abre o formulário modal para cadastrar um novo cliente."""
         def on_save(dados):
@@ -308,3 +383,35 @@ class ClientesView(ctk.CTkFrame):
             if self.service.remover_cliente(cliente_id):
                 self.atualizar_tabela()
                 messagebox.showinfo("Sucesso", "Cliente removido com sucesso!", parent=self)
+
+    def acao_exportar_pdf(self):
+        """Exporta o cadastro de clientes atual para PDF com caixa de seleção de arquivo."""
+        if not self.clientes_cache:
+            messagebox.showwarning("Sem Dados", "Não há clientes para exportar no momento.", parent=self)
+            return
+
+        colunas = ["ID Cliente", "Nome do Cliente", "Endereço", "Data do Último Pedido", "Contato"]
+        linhas = []
+
+        for c in self.clientes_cache:
+            linhas.append([
+                c.get("id", ""),
+                c.get("nome_cliente", "-"),
+                c.get("endereco", "-"),
+                c.get("data_ultimo_pedido", "-"),
+                c.get("contato", "-")
+            ])
+
+        totais_info = {
+            "Total de Clientes Cadastrados": len(linhas)
+        }
+
+        PDFService.exportar_tabela_pdf(
+            titulo_documento="Cadastro_de_Clientes",
+            colunas_titulos=colunas,
+            dados_linhas=linhas,
+            totais_info=totais_info,
+            base_dir=self.base_dir,
+            parent_window=self,
+            orientacao_paisagem=True
+        )

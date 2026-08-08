@@ -1,21 +1,19 @@
 import customtkinter as ctk
 from tkinter import ttk, messagebox
 from config.settings import PALETTE, get_color
-from services.pedidos_service import PedidosService
-from services.clientes_service import ClientesService
+from services.estoque_service import EstoqueService
 from services.pdf_service import PDFService
-from components.pedido_form_modal import PedidoFormModal
+from components.estoque_form_modal import EstoqueFormModal
 
-class PedidosView(ctk.CTkFrame):
-    """Módulo completo de Gerenciamento de Pedidos com Tabela, CRUD e Persistência em JSON integrados ao Estoque e Clientes."""
+class EstoqueView(ctk.CTkFrame):
+    """Módulo completo de Gerenciamento de Estoque com Tabela, CRUD e Persistência em JSON."""
     
     def __init__(self, master, base_dir=None, **kwargs):
         super().__init__(master, fg_color=PALETTE["main_bg"], corner_radius=0, **kwargs)
         
         self.base_dir = base_dir
-        self.service = PedidosService(base_dir=base_dir)
-        self.clientes_service = ClientesService(base_dir=base_dir)
-        self.pedidos_cache = []
+        self.service = EstoqueService(base_dir=base_dir)
+        self.estoque_cache = []
         
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(2, weight=1)
@@ -26,21 +24,21 @@ class PedidosView(ctk.CTkFrame):
         # 2. Barra de Ferramentas (Pesquisa e Botões de Ação)
         self.criar_barra_ferramentas()
         
-        # 3. Tabela de Pedidos (Treeview Estilizado)
-        self.criar_tabela_pedidos()
+        # 3. Tabela de Estoque (Treeview Estilizado)
+        self.criar_tabela_estoque()
         
         # Carregar dados iniciais
         self.atualizar_tabela()
 
     def criar_cabecalho(self):
-        """Cria o cabeçalho superior do módulo de pedidos."""
+        """Cria o cabeçalho superior do módulo de estoque."""
         header_frame = ctk.CTkFrame(self, fg_color="transparent")
         header_frame.grid(row=0, column=0, sticky="ew", padx=40, pady=(28, 6))
         header_frame.grid_columnconfigure(0, weight=1)
         
         lbl_title = ctk.CTkLabel(
             header_frame,
-            text="Gestão de Pedidos",
+            text="Controle de Estoque",
             font=ctk.CTkFont(family="Georgia", size=28, weight="bold"),
             text_color=PALETTE["title_text"],
             anchor="w"
@@ -49,7 +47,7 @@ class PedidosView(ctk.CTkFrame):
         
         lbl_sub = ctk.CTkLabel(
             header_frame,
-            text="Gerencie as encomendas do atelier vinculadas ao banco de clientes e materiais do estoque.",
+            text="Gerencie tintas, papéis, molduras e insumos criativos com preços unitários e saldos.",
             font=ctk.CTkFont(family="Segoe UI", size=14),
             text_color=PALETTE["subtitle_text"],
             anchor="w"
@@ -57,7 +55,7 @@ class PedidosView(ctk.CTkFrame):
         lbl_sub.pack(anchor="w", pady=(2, 0))
 
     def criar_barra_ferramentas(self):
-        """Cria os controles de busca e botões de Novo, Editar e Excluir."""
+        """Cria os controles de busca e botões de Novo Item, Editar e Excluir."""
         tools_frame = ctk.CTkFrame(self, fg_color="transparent")
         tools_frame.grid(row=1, column=0, sticky="ew", padx=40, pady=(16, 16))
         tools_frame.grid_columnconfigure(0, weight=1)
@@ -65,14 +63,14 @@ class PedidosView(ctk.CTkFrame):
         # Campo de Pesquisa
         self.entry_pesquisa = ctk.CTkEntry(
             tools_frame,
-            placeholder_text="🔍 Pesquisar por cliente ou produto...",
+            placeholder_text="🔍 Pesquisar material, categoria ou ID...",
             height=42,
             corner_radius=12,
             border_color=PALETTE["card_border"],
             font=ctk.CTkFont(size=13)
         )
         self.entry_pesquisa.grid(row=0, column=0, sticky="ew", padx=(0, 16))
-        self.entry_pesquisa.bind("<KeyRelease>", self.filtrar_pedidos)
+        self.entry_pesquisa.bind("<KeyRelease>", self.filtrar_estoque)
         
         # Container de Botões
         actions_frame = ctk.CTkFrame(tools_frame, fg_color="transparent")
@@ -126,10 +124,10 @@ class PedidosView(ctk.CTkFrame):
         )
         btn_pdf.pack(side="left", padx=4)
 
-        # Botão Adicionar
+        # Botão Adicionar Item
         btn_novo = ctk.CTkButton(
             actions_frame,
-            text="+ Novo Pedido",
+            text="+ Novo Item",
             height=42,
             corner_radius=12,
             fg_color=PALETTE["active_pill"],
@@ -140,7 +138,7 @@ class PedidosView(ctk.CTkFrame):
         )
         btn_novo.pack(side="left", padx=(4, 0))
 
-    def criar_tabela_pedidos(self):
+    def criar_tabela_estoque(self):
         """Cria e estiliza a tabela ttk.Treeview com barras de rolagem."""
         table_container = ctk.CTkFrame(
             self,
@@ -153,35 +151,40 @@ class PedidosView(ctk.CTkFrame):
         table_container.grid_columnconfigure(0, weight=1)
         table_container.grid_rowconfigure(0, weight=1)
         
-        # Estilização do Treeview usando cores puras via get_color
+        # Estilização do Treeview
         self.atualizar_estilo_tema()
         
-        colunas = ("id", "data_pedido", "nome_cliente", "produto", "valor_produto", "data_entrega")
+        colunas = ("id", "nome", "categoria", "quantidade", "unidade", "preco_unitario", "valor_total")
         
         self.tree = ttk.Treeview(
             table_container,
             columns=colunas,
             show="headings",
-            style="Pedidos.Treeview",
+            style="Estoque.Treeview",
             selectmode="browse"
         )
         
         # Definição das colunas
-        self.tree.heading("id", text="ID Pedido", anchor="w")
-        self.tree.heading("data_pedido", text="Data do Pedido", anchor="w")
-        self.tree.heading("nome_cliente", text="Nome do Cliente", anchor="w")
-        self.tree.heading("produto", text="Produto", anchor="w")
-        self.tree.heading("valor_produto", text="Valor do Produto", anchor="w")
-        self.tree.heading("data_entrega", text="Data de Entrega", anchor="w")
+        self.tree.heading("id", text="ID Item", anchor="w")
+        self.tree.heading("nome", text="Nome do Material", anchor="w")
+        self.tree.heading("categoria", text="Categoria", anchor="w")
+        self.tree.heading("quantidade", text="Qtd. Disponível", anchor="w")
+        self.tree.heading("unidade", text="Unidade", anchor="w")
+        self.tree.heading("preco_unitario", text="Preço Unit. (R$)", anchor="w")
+        self.tree.heading("valor_total", text="Valor Total em Estoque", anchor="w")
         
         self.tree.column("id", width=90, minwidth=80, anchor="w")
-        self.tree.column("data_pedido", width=120, minwidth=100, anchor="w")
-        self.tree.column("nome_cliente", width=200, minwidth=140, anchor="w")
-        self.tree.column("produto", width=250, minwidth=180, anchor="w")
-        self.tree.column("valor_produto", width=140, minwidth=110, anchor="w")
-        self.tree.column("data_entrega", width=130, minwidth=110, anchor="w")
+        self.tree.column("nome", width=260, minwidth=180, anchor="w")
+        self.tree.column("categoria", width=140, minwidth=110, anchor="w")
+        self.tree.column("quantidade", width=120, minwidth=100, anchor="w")
+        self.tree.column("unidade", width=90, minwidth=70, anchor="w")
+        self.tree.column("preco_unitario", width=130, minwidth=100, anchor="w")
+        self.tree.column("valor_total", width=150, minwidth=120, anchor="w")
         
-        # Scrollbar vertical estilizada em rosa
+        # Tag para indicar estoque baixo
+        self.tree.tag_configure("estoque_baixo", foreground="#D32F2F")
+        
+        # Scrollbar vertical
         scrollbar = ctk.CTkScrollbar(
             table_container,
             orientation="vertical",
@@ -213,17 +216,17 @@ class PedidosView(ctk.CTkFrame):
         act_pill = get_color(PALETTE["active_pill"], modo)
         
         style.configure(
-            "Pedidos.Treeview.Heading",
+            "Estoque.Treeview.Heading",
             background=sb_bg,
             foreground=br_title,
             font=("Segoe UI", 11, "bold"),
             rowheight=38,
             relief="flat"
         )
-        style.map("Pedidos.Treeview.Heading", background=[('active', in_hover)])
+        style.map("Estoque.Treeview.Heading", background=[('active', in_hover)])
         
         style.configure(
-            "Pedidos.Treeview",
+            "Estoque.Treeview",
             background=card_bg,
             fieldbackground=card_bg,
             foreground=t_text,
@@ -232,170 +235,158 @@ class PedidosView(ctk.CTkFrame):
             borderwidth=0
         )
         style.map(
-            "Pedidos.Treeview",
+            "Estoque.Treeview",
             background=[('selected', act_pill), ('focus', act_pill)],
             foreground=[('selected', '#FFFFFF'), ('focus', '#FFFFFF')]
         )
 
     def atualizar_tabela(self):
-        """Carrega os dados do serviço e redesenha as linhas na tabela."""
-        self.pedidos_cache = self.service.carregar_pedidos()
-        self.renderizar_linhas(self.pedidos_cache)
+        """Carrega os dados do serviço de estoque e redesenha as linhas na tabela."""
+        self.estoque_cache = self.service.carregar_estoque()
+        self.renderizar_linhas(self.estoque_cache)
 
-    def renderizar_linhas(self, lista_pedidos):
+    def renderizar_linhas(self, lista_estoque):
         """Limpa a tabela e insere as linhas fornecidas."""
         for item in self.tree.get_children():
             self.tree.delete(item)
             
-        for p in lista_pedidos:
-            try:
-                val_num = float(p.get("valor_produto", 0))
-                val_str = f"R$ {val_num:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-            except (ValueError, TypeError):
-                val_str = f"R$ {p.get('valor_produto', '0,00')}"
-                
+        for item in lista_estoque:
+            qtd = float(item.get("quantidade", 0))
+            preco = float(item.get("preco_unitario", 0))
+            val_total = qtd * preco
+            
+            preco_str = f"R$ {preco:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+            total_str = f"R$ {val_total:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+            qtd_str = f"{qtd:.1f}".rstrip('0').rstrip('.') if qtd % 1 != 0 else f"{int(qtd)}"
+            
+            tags = ()
+            if qtd <= 5:
+                tags = ("estoque_baixo",)
+
             self.tree.insert(
                 "",
                 "end",
-                iid=p["id"],
+                iid=item["id"],
                 values=(
-                    p.get("id", ""),
-                    p.get("data_pedido", "-"),
-                    p.get("nome_cliente", "-"),
-                    p.get("produto", "-"),
-                    val_str,
-                    p.get("data_entrega", "-")
-                )
+                    item.get("id", ""),
+                    item.get("nome", "-"),
+                    item.get("categoria", "-"),
+                    qtd_str,
+                    item.get("unidade", "un"),
+                    preco_str,
+                    total_str
+                ),
+                tags=tags
             )
 
-    def filtrar_pedidos(self, event=None):
+    def filtrar_estoque(self, event=None):
         """Filtra as linhas exibidas conforme a busca."""
         termo = self.entry_pesquisa.get().strip().lower()
         if not termo:
-            self.renderizar_linhas(self.pedidos_cache)
+            self.renderizar_linhas(self.estoque_cache)
             return
             
         filtrados = [
-            p for p in self.pedidos_cache
-            if termo in p.get("nome_cliente", "").lower()
-            or termo in p.get("produto", "").lower()
-            or termo in p.get("id", "").lower()
+            item for item in self.estoque_cache
+            if termo in item.get("nome", "").lower()
+            or termo in item.get("categoria", "").lower()
+            or termo in item.get("id", "").lower()
         ]
         self.renderizar_linhas(filtrados)
 
     def acao_adicionar(self):
-        """Abre o formulário modal para cadastrar um novo pedido."""
+        """Abre o formulário modal para cadastrar um novo item no estoque."""
         def on_save(dados):
-            try:
-                self.service.adicionar_pedido(
-                    data_pedido=dados["data_pedido"],
-                    nome_cliente=dados["nome_cliente"],
-                    produto=dados["produto"],
-                    valor_produto=dados["valor_produto"],
-                    data_entrega=dados["data_entrega"],
-                    itens_usados=dados.get("itens_usados", [])
-                )
-                self.atualizar_tabela()
-                messagebox.showinfo("Sucesso", "Pedido cadastrado com sucesso e materiais abatidos do estoque!", parent=self)
-            except Exception as e:
-                messagebox.showerror("Erro de Validação", str(e), parent=self)
+            self.service.adicionar_item(
+                nome=dados["nome"],
+                categoria=dados["categoria"],
+                quantidade=dados["quantidade"],
+                unidade=dados["unidade"],
+                preco_unitario=dados["preco_unitario"]
+            )
+            self.atualizar_tabela()
+            messagebox.showinfo("Sucesso", "Material adicionado ao estoque!", parent=self)
 
-        modal = PedidoFormModal(
-            self,
-            title="Adicionar Novo Pedido",
-            on_save=on_save,
-            estoque_service=self.service.estoque_service,
-            clientes_service=self.clientes_service,
-            base_dir=self.base_dir
-        )
+        modal = EstoqueFormModal(self, title="Adicionar Novo Material", on_save=on_save)
 
     def acao_editar(self):
-        """Abre o formulário modal para editar o pedido selecionado."""
+        """Abre o formulário modal para editar o item do estoque selecionado."""
         selecionado = self.tree.selection()
         if not selecionado:
-            messagebox.showwarning("Seleção Necessária", "Por favor, selecione um pedido na tabela para editar.", parent=self)
+            messagebox.showwarning("Seleção Necessária", "Por favor, selecione um item na tabela para editar.", parent=self)
             return
             
-        pedido_id = selecionado[0]
-        pedido_atual = next((p for p in self.pedidos_cache if p["id"] == pedido_id), None)
+        item_id = selecionado[0]
+        item_atual = next((item for item in self.estoque_cache if item["id"] == item_id), None)
         
-        if not pedido_atual:
+        if not item_atual:
             return
 
         def on_save(dados):
-            try:
-                self.service.atualizar_pedido(
-                    pedido_id=pedido_id,
-                    data_pedido=dados["data_pedido"],
-                    nome_cliente=dados["nome_cliente"],
-                    produto=dados["produto"],
-                    valor_produto=dados["valor_produto"],
-                    data_entrega=dados["data_entrega"],
-                    itens_usados=dados.get("itens_usados", [])
-                )
-                self.atualizar_tabela()
-                messagebox.showinfo("Sucesso", "Pedido atualizado com sucesso e estoque recalculado!", parent=self)
-            except Exception as e:
-                messagebox.showerror("Erro de Validação", str(e), parent=self)
+            self.service.atualizar_item(
+                item_id=item_id,
+                nome=dados["nome"],
+                categoria=dados["categoria"],
+                quantidade=dados["quantidade"],
+                unidade=dados["unidade"],
+                preco_unitario=dados["preco_unitario"]
+            )
+            self.atualizar_tabela()
+            messagebox.showinfo("Sucesso", "Item do estoque atualizado com sucesso!", parent=self)
 
-        modal = PedidoFormModal(
-            self,
-            title=f"Editar Pedido {pedido_id}",
-            pedido_data=pedido_atual,
-            on_save=on_save,
-            estoque_service=self.service.estoque_service,
-            clientes_service=self.clientes_service,
-            base_dir=self.base_dir
-        )
+        modal = EstoqueFormModal(self, title=f"Editar Item {item_id}", item_data=item_atual, on_save=on_save)
 
     def acao_excluir(self):
-        """Confirma e remove o pedido selecionado."""
+        """Confirma e remove o item do estoque selecionado."""
         selecionado = self.tree.selection()
         if not selecionado:
-            messagebox.showwarning("Seleção Necessária", "Por favor, selecione um pedido na tabela para excluir.", parent=self)
+            messagebox.showwarning("Seleção Necessária", "Por favor, selecione um item na tabela para excluir.", parent=self)
             return
             
-        pedido_id = selecionado[0]
-        confirmar = messagebox.askyesno("Confirmar Exclusão", f"Tem certeza que deseja remover o pedido {pedido_id}? Os materiais do estoque serão devolvidos.", parent=self)
+        item_id = selecionado[0]
+        confirmar = messagebox.askyesno("Confirmar Exclusão", f"Tem certeza que deseja remover o item {item_id} do estoque?", parent=self)
         if confirmar:
-            if self.service.remover_pedido(pedido_id):
+            if self.service.remover_item(item_id):
                 self.atualizar_tabela()
-                messagebox.showinfo("Sucesso", "Pedido removido com sucesso e materiais devolvidos ao estoque!", parent=self)
+                messagebox.showinfo("Sucesso", "Item removido do estoque!", parent=self)
 
     def acao_exportar_pdf(self):
-        """Exporta a lista de pedidos atual para PDF com seleção de arquivo."""
-        if not self.pedidos_cache:
-            messagebox.showwarning("Sem Dados", "Não há pedidos para exportar no momento.", parent=self)
+        """Exporta a lista atual do estoque para PDF com caixa de seleção de arquivo."""
+        if not self.estoque_cache:
+            messagebox.showwarning("Sem Dados", "Não há itens no estoque para exportar no momento.", parent=self)
             return
 
-        colunas = ["ID Pedido", "Data Pedido", "Nome do Cliente", "Produto / Encomenda", "Valor (R$)", "Data Entrega"]
+        colunas = ["ID Item", "Nome do Material", "Categoria", "Qtd. Disponível", "Unidade", "Preço Unit. (R$)", "Valor Total (R$)"]
         linhas = []
-        total_val = 0.0
+        total_estoque_val = 0.0
 
-        for p in self.pedidos_cache:
-            try:
-                val_num = float(p.get("valor_produto", 0))
-            except (ValueError, TypeError):
-                val_num = 0.0
-            total_val += val_num
+        for item in self.estoque_cache:
+            qtd = float(item.get("quantidade", 0))
+            preco = float(item.get("preco_unitario", 0))
+            val_tot = qtd * preco
+            total_estoque_val += val_tot
 
-            val_str = f"R$ {val_num:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+            preco_str = f"R$ {preco:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+            total_str = f"R$ {val_tot:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+            qtd_str = f"{qtd:.1f}".rstrip('0').rstrip('.') if qtd % 1 != 0 else f"{int(qtd)}"
+
             linhas.append([
-                p.get("id", ""),
-                p.get("data_pedido", "-"),
-                p.get("nome_cliente", "-"),
-                p.get("produto", "-"),
-                val_str,
-                p.get("data_entrega", "-")
+                item.get("id", ""),
+                item.get("nome", "-"),
+                item.get("categoria", "-"),
+                qtd_str,
+                item.get("unidade", "un"),
+                preco_str,
+                total_str
             ])
 
         totais_info = {
-            "Total de Pedidos": len(linhas),
-            "Valor Total Acumulado": f"R$ {total_val:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+            "Total de Itens Cadastrados": len(linhas),
+            "Valor Total Investido em Estoque": f"R$ {total_estoque_val:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
         }
 
         PDFService.exportar_tabela_pdf(
-            titulo_documento="Relatorio_de_Pedidos",
+            titulo_documento="Relatorio_de_Estoque",
             colunas_titulos=colunas,
             dados_linhas=linhas,
             totais_info=totais_info,

@@ -32,22 +32,11 @@ class BoasVindasView(ctk.CTkFrame):
         )
         lbl_subtitle.pack(pady=(0, 35))
         
-        # Frame de brilho rosa em volta da mascote
-        glow_frame = ctk.CTkFrame(
-            content_frame,
-            width=340,
-            height=340,
-            corner_radius=170,
-            fg_color=("#FDE8EB", "#332427")
-        )
-        glow_frame.pack_propagate(False)
-        glow_frame.pack(pady=10)
-        
         # Mascote Hanna centralizada
         if mascot_image:
             lbl_mascot = ctk.CTkLabel(
-                glow_frame,
+                content_frame,
                 text="",
                 image=mascot_image
             )
-            lbl_mascot.place(relx=0.5, rely=0.5, anchor="center")
+            lbl_mascot.pack(pady=10)
