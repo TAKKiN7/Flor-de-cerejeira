@@ -1,8 +1,9 @@
+import sys
 import os
 import customtkinter as ctk
 from tkinter import messagebox
 from PIL import Image
-from config.settings import PALETTE
+from config.settings import PALETTE, get_base_dir, get_assets_dir
 from components.sidebar_button import SidebarButton
 from views.boas_vindas_view import BoasVindasView
 from views.generic_module_view import GenericModuleView
@@ -28,8 +29,8 @@ class JanelaFlorDeCerejeira(ctk.CTk):
         self.bind("<F11>", self.alternar_fullscreen)
         self.bind("<Escape>", lambda e: self.attributes("-fullscreen", False))
         
-        # Diretório base do projeto (raiz)
-        self.base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        # Diretório base do projeto (raiz ou diretório do .exe se congelado)
+        self.base_dir = get_base_dir()
         
         # Garantir assets
         self.carregar_assets()
@@ -53,13 +54,16 @@ class JanelaFlorDeCerejeira(ctk.CTk):
 
     def carregar_assets(self):
         """Carrega e prepara todas as imagens e ícones para o CustomTkinter."""
-        assets_dir = os.path.join(self.base_dir, "assets")
+        assets_dir = get_assets_dir(self.base_dir)
         icons_dir = os.path.join(assets_dir, "icons")
         
         # Se os assets não existirem, gerar via script
         if not os.path.exists(os.path.join(assets_dir, "hanna_mascot.png")):
-            from build_assets import generate_all_assets
-            generate_all_assets(self.base_dir)
+            try:
+                from build_assets import generate_all_assets
+                generate_all_assets(self.base_dir)
+            except Exception:
+                pass
             
         # Carregar logo da loja
         logo_path = os.path.join(assets_dir, "logo_palette.png")

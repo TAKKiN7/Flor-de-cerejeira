@@ -6,7 +6,8 @@ class ClientesService:
     
     def __init__(self, base_dir=None):
         if base_dir is None:
-            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            from config.settings import get_base_dir
+            base_dir = get_base_dir()
         self.data_dir = os.path.join(base_dir, "data")
         self.data_file = os.path.join(self.data_dir, "clientes.json")
         self.garantir_arquivo_dados()

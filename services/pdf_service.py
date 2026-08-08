@@ -118,7 +118,8 @@ class PDFService:
             )
 
             # --- Cabeçalho com Logo, Marca e Mascote ---
-            assets_dir = os.path.join(base_dir, "assets")
+            from config.settings import get_assets_dir
+            assets_dir = get_assets_dir(base_dir)
             logo_path = os.path.join(assets_dir, "logo_palette.png")
             mascot_path = os.path.join(assets_dir, "hanna_mascot.png")
 
@@ -244,11 +245,12 @@ class PDFService:
         from pypdf import PdfReader, PdfWriter
         from reportlab.pdfgen import canvas
         from reportlab.lib.colors import HexColor
+        from config.settings import get_base_dir, get_assets_dir
 
         if base_dir is None:
-            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            base_dir = get_base_dir()
 
-        template_path = os.path.join(base_dir, "assets", "pdf_base_orcamento.pdf")
+        template_path = os.path.join(get_assets_dir(base_dir), "pdf_base_orcamento.pdf")
 
         if not os.path.exists(template_path):
             messagebox.showerror("Erro de Arquivo", f"O modelo base de PDF não foi encontrado em:\n{template_path}", parent=parent_window)

@@ -2,77 +2,75 @@ import os
 import math
 from PIL import Image, ImageDraw, ImageFilter, ImageOps
 
-def create_circular_mascot(input_path, output_path, size=(320, 320)):
-    """Cria a imagem da mascote em formato circular com borda e sombra suave."""
+def create_circular_mascot(input_path, output_path, size=(320, 320), border_px=5, margin_px=10):
+    """Cria a imagem da mascote em formato circular suave com borda branca e transparência nas bordas."""
     if not os.path.exists(input_path):
         print(f"Erro: Imagem {input_path} não encontrada.")
         return
         
     img = Image.open(input_path).convert("RGBA")
+    w, h = img.size
     
-    # Redimensionar para tamanho alto para anti-aliasing
     scale = 4
-    target_size = (size[0] * scale, size[1] * scale)
+    S = size[0] * scale
+    margin = margin_px * scale
+    border = border_px * scale
     
-    # Cortar centralizado (square crop)
-    min_dim = min(img.size)
-    left = (img.width - min_dim) // 2
-    top = (img.height - min_dim) // 2
-    img = img.crop((left, top, left + min_dim, top + min_dim))
-    img = img.resize(target_size, Image.Resampling.LANCZOS)
+    content_d = S - (margin * 2) - (border * 2)
+    crop_m = int(min(w, h) * 0.02)
+    img_cropped = img.crop((crop_m, crop_m, w - crop_m, h - crop_m))
+    img_resized = img_cropped.resize((content_d, content_d), Image.Resampling.LANCZOS)
     
-    # Criar máscara circular perfeitamente suave
-    mask = Image.new("L", target_size, 0)
-    draw_mask = ImageDraw.Draw(mask)
-    draw_mask.ellipse((0, 0, target_size[0], target_size[1]), fill=255)
+    high_canvas = Image.new("RGBA", (S, S), (0, 0, 0, 0))
     
-    # Aplicar a máscara circular
-    circular_img = Image.new("RGBA", target_size, (0, 0, 0, 0))
-    circular_img.paste(img, (0, 0), mask=mask)
+    border_d = content_d + (border * 2)
+    border_pos = margin
+    border_mask = Image.new("L", (S, S), 0)
+    draw_bm = ImageDraw.Draw(border_mask)
+    draw_bm.ellipse((border_pos, border_pos, border_pos + border_d - 1, border_pos + border_d - 1), fill=255)
     
-    # Adicionar borda branca/suave em volta
-    border_width = 8 * scale
-    final_canvas_size = (target_size[0] + border_width * 2, target_size[1] + border_width * 2)
-    final_canvas = Image.new("RGBA", final_canvas_size, (0, 0, 0, 0))
+    white_fill = Image.new("RGBA", (S, S), (255, 255, 255, 255))
+    high_canvas.paste(white_fill, (0, 0), mask=border_mask)
     
-    # Borda branca circular
-    border_mask = Image.new("L", final_canvas_size, 0)
-    draw_bmask = ImageDraw.Draw(border_mask)
-    draw_bmask.ellipse((0, 0, final_canvas_size[0], final_canvas_size[1]), fill=255)
+    inner_mask = Image.new("L", (content_d, content_d), 0)
+    draw_im = ImageDraw.Draw(inner_mask)
+    draw_im.ellipse((0, 0, content_d - 1, content_d - 1), fill=255)
     
-    border_fill = Image.new("RGBA", final_canvas_size, (255, 255, 255, 255))
-    final_canvas.paste(border_fill, (0, 0), mask=border_mask)
-    final_canvas.paste(circular_img, (border_width, border_width), mask=circular_img)
+    content_pos = margin + border
+    high_canvas.paste(img_resized, (content_pos, content_pos), mask=inner_mask)
     
-    # Reduzir para tamanho final com antialiasing
-    final_img = final_canvas.resize(size, Image.Resampling.LANCZOS)
+    final_img = high_canvas.resize(size, Image.Resampling.LANCZOS)
     final_img.save(output_path, "PNG")
-    print(f"Mascote circular salva em: {output_path}")
+    print(f"Mascote circular salva com sucesso em: {output_path}")
 
 def draw_palette_logo(size=128, bg_color=(235, 175, 185), icon_color=(100, 45, 55)):
-    """Cria a imagem do ícone de paleta para o topo da barra lateral."""
-    img = Image.new("RGBA", (size * 4, size * 4), (0, 0, 0, 0))
+    """Cria a imagem do ícone de paleta para o topo da barra lateral com margem anti-aliasing."""
+    scale = 4
+    S = size * scale
+    margin = 8 * scale
+    d = S - (margin * 2)
+    
+    img = Image.new("RGBA", (S, S), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
     
     # Fundo circular
-    draw.ellipse((0, 0, size * 4, size * 4), fill=bg_color)
+    draw.ellipse((margin, margin, margin + d - 1, margin + d - 1), fill=bg_color)
     
     # Paleta de pintura
-    # Corpo da paleta (elipse levemente rotacionada/offset)
-    p_cx, p_cy = size * 2, size * 2.05
-    p_rx, p_ry = size * 1.1, size * 0.85
+    p_cx, p_cy = S / 2, S * 0.51
+    p_rx, p_ry = d * 0.275, d * 0.21
     draw.ellipse((p_cx - p_rx, p_cy - p_ry, p_cx + p_rx, p_cy + p_ry), fill=icon_color)
     
     # Buraco do polegar na paleta (transparente)
-    h_cx, h_cy = size * 1.5, size * 2.3
-    h_r = size * 0.22
+    h_cx, h_cy = S * 0.375, S * 0.575
+    h_r = d * 0.055
     draw.ellipse((h_cx - h_r, h_cy - h_r, h_cx + h_r, h_cy + h_r), fill=bg_color)
     
     # Manchas de tinta coloridas na paleta
     dots = [
-        (size * 2.3, size * 1.5, size * 0.16, (255, 255, 255)),
-        (size * 2.6, size * 1.85, size * 0.14, (255, 255, 255)),
-        (size * 2.4, size * 2.3, size * 0.15, (255, 255, 255)),
+        (S * 0.575, S * 0.375, d * 0.04, (255, 255, 255)),
+        (S * 0.65, S * 0.46, d * 0.035, (255, 255, 255)),
+        (S * 0.60, S * 0.575, d * 0.0375, (255, 255, 255)),
     ]
     for dx, dy, dr, color in dots:
         draw.ellipse((dx - dr, dy - dr, dx + dr, dy + dr), fill=color)

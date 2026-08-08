@@ -1,9 +1,28 @@
+import sys
+import os
 import customtkinter as ctk
+
+def get_base_dir():
+    """Retorna o diretório base para gravação de dados (onde o .exe está localizado se congelado, ou a raiz do projeto)."""
+    if getattr(sys, 'frozen', False):
+        return os.path.dirname(sys.executable)
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+def get_assets_dir(base_dir=None):
+    """Retorna o diretório de assets estáticos (prioriza sys._MEIPASS quando congelado)."""
+    if getattr(sys, 'frozen', False):
+        meipass_assets = os.path.join(getattr(sys, '_MEIPASS', ''), "assets")
+        if os.path.exists(meipass_assets):
+            return meipass_assets
+    if base_dir is None:
+        base_dir = get_base_dir()
+    return os.path.join(base_dir, "assets")
 
 # Configurações globais de aparência do CustomTkinter
 def setup_theme():
     ctk.set_appearance_mode("Light")
     ctk.set_default_color_theme("blue")
+
 
 # Cores da Paleta "Flor de Cerejeira" com suporte a Modo Claro e Modo Escuro (Light, Dark)
 PALETTE = {
