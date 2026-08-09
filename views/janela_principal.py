@@ -12,6 +12,7 @@ from views.clientes_view import ClientesView
 from views.agenda_view import AgendaView
 from views.estoque_view import EstoqueView
 from views.financeiro_view import FinanceiroView
+from views.cursos_view import CursosView
 from views.orcamento_view import OrcamentoView
 
 class JanelaFlorDeCerejeira(ctk.CTk):
@@ -83,7 +84,7 @@ class JanelaFlorDeCerejeira(ctk.CTk):
             
         # Carregar ícones do menu
         self.icons = {}
-        items = ["boas_vindas", "orcamento", "pedidos", "clientes", "agenda", "estoque", "financeiro", "configuracoes", "suporte"]
+        items = ["boas_vindas", "orcamento", "pedidos", "clientes", "agenda", "estoque", "financeiro", "cursos", "configuracoes", "suporte"]
         for item in items:
             norm_p = os.path.join(icons_dir, f"{item}_normal.png")
             act_p = os.path.join(icons_dir, f"{item}_active.png")
@@ -149,6 +150,7 @@ class JanelaFlorDeCerejeira(ctk.CTk):
             ("agenda", "Agenda"),
             ("estoque", "Estoque"),
             ("financeiro", "Financeiro"),
+            ("cursos", "Cursos"),
         ]
         
         for idx, (key, label) in enumerate(main_menu_items):
@@ -233,6 +235,7 @@ class JanelaFlorDeCerejeira(ctk.CTk):
         self.views["agenda"] = AgendaView(self.container, base_dir=self.base_dir)
         self.views["estoque"] = EstoqueView(self.container, base_dir=self.base_dir)
         self.views["financeiro"] = FinanceiroView(self.container, base_dir=self.base_dir)
+        self.views["cursos"] = CursosView(self.container, base_dir=self.base_dir)
         
         for view in self.views.values():
             view.grid(row=0, column=0, sticky="nsew")

@@ -190,6 +190,17 @@ def draw_vector_icon(name, color=(90, 69, 73), size=64):
         draw.line([(80, 130), (176, 130)], fill=color, width=lw)
         draw.line([(80, 175), (140, 175)], fill=color, width=lw)
 
+    elif name == "cursos":
+        # Ícone de Chapéu de Formatura / Livro
+        cx, cy = S // 2, S // 2 - 5
+        # Losango do chapéu (Graduation cap top)
+        draw.polygon([(cx, cy - 45), (cx + 85, cy - 10), (cx, cy + 25), (cx - 85, cy - 10)], fill=color)
+        # Base
+        draw.polygon([(cx - 50, cy + 15), (cx + 50, cy + 15), (cx + 50, cy + 45), (cx - 50, cy + 45)], fill=color)
+        # Cordão / Borla (Tassel)
+        draw.line([(cx + 65, cy - 2), (cx + 75, cy + 42)], fill=color, width=lw//2)
+        draw.ellipse((cx + 68, cy + 40, cx + 82, cy + 54), fill=color)
+
     res = img.resize((size, size), Image.Resampling.LANCZOS)
     return res
 
@@ -216,7 +227,7 @@ def generate_all_assets(base_dir):
         logo_img.save(out_logo)
     
     # 3. Ícones do menu (Normal e Ativo)
-    icon_names = ["boas_vindas", "orcamento", "pedidos", "clientes", "agenda", "estoque", "financeiro", "configuracoes", "suporte"]
+    icon_names = ["boas_vindas", "orcamento", "pedidos", "clientes", "agenda", "estoque", "financeiro", "cursos", "configuracoes", "suporte"]
     color_normal = (90, 69, 73)   # #5A4549 (Brownish mauve)
     color_active = (255, 255, 255) # White
     
