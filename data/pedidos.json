@@ -1,77 +1,12 @@
 [
     {
         "id": "PED-1001",
-        "data_pedido": "04/08/2026",
-        "nome_cliente": "Camila Oliveira",
-        "produto": "Quadro Floral Aquarela 30x40",
-        "valor_produto": "98.50",
-        "data_entrega": "12/08/2026",
-        "itens_usados": [
-            {
-                "item_id": "EST-1001",
-                "nome": "Papel Canson Aquarela 300g (Folha A3)",
-                "quantidade": 1.0,
-                "preco_unitario": 8.5,
-                "subtotal": 8.5
-            },
-            {
-                "item_id": "EST-1003",
-                "nome": "Moldura de Madeira 30x40cm",
-                "quantidade": 2.0,
-                "preco_unitario": 45.0,
-                "subtotal": 90.0
-            }
-        ]
-    },
-    {
-        "id": "PED-1002",
-        "data_pedido": "03/08/2026",
-        "nome_cliente": "Beatriz Lima",
-        "produto": "Convite de Casamento Botânico (Kit 50 un)",
-        "valor_produto": "42.50",
-        "data_entrega": "20/08/2026",
-        "itens_usados": [
-            {
-                "item_id": "EST-1001",
-                "nome": "Papel Canson Aquarela 300g (Folha A3)",
-                "quantidade": 5.0,
-                "preco_unitario": 8.5,
-                "subtotal": 42.5
-            }
-        ]
-    },
-    {
-        "id": "PED-1003",
-        "data_pedido": "01/08/2026",
-        "nome_cliente": "Juliana Santos",
-        "produto": "Caneca Personalizada Ilustração Hanna",
-        "valor_produto": "18.00",
-        "data_entrega": "08/08/2026",
-        "itens_usados": [
-            {
-                "item_id": "EST-1005",
-                "nome": "Caneca Porcelana Branca 325ml",
-                "quantidade": 1.0,
-                "preco_unitario": 18.0,
-                "subtotal": 18.0
-            }
-        ]
-    },
-    {
-        "id": "PED-1004",
-        "data_pedido": "08/08/2026",
-        "nome_cliente": "Camila Oliveira",
-        "produto": "teste",
-        "valor_produto": "200.00",
-        "data_entrega": "15/08/2026",
-        "itens_usados": [
-            {
-                "item_id": "EST-1001",
-                "nome": "bordado pronto",
-                "quantidade": 2.0,
-                "preco_unitario": 75.0,
-                "subtotal": 150.0
-            }
-        ]
+        "data_pedido": "17/08/2026",
+        "nome_cliente": "TESTE",
+        "produto": "TESTE",
+        "valor_produto": "0.00",
+        "data_entrega": "18/08/2026",
+        "itens_usados": [],
+        "entregue": true
     }
 ]

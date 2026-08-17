@@ -19,82 +19,10 @@ class FinanceiroService:
         self.garantir_arquivo_dados()
 
     def garantir_arquivo_dados(self):
-        """Cria o diretório e o arquivo JSON inicial com lançamentos de exemplo caso não existam."""
+        """Cria o diretório e o arquivo JSON inicial caso não existam."""
         os.makedirs(self.data_dir, exist_ok=True)
         if not os.path.exists(self.data_file) or os.path.getsize(self.data_file) <= 2:
-            dados_iniciais = [
-                {
-                    "id": "FIN-1001",
-                    "tipo": "Entrada",
-                    "data": "08/07/2026",
-                    "descricao": "Bordado Nayara",
-                    "categoria": "Entrada",
-                    "valor_entrada": 100.00,
-                    "valor_saida": 0.00,
-                    "forma_pagamento": "Pix"
-                },
-                {
-                    "id": "FIN-1002",
-                    "tipo": "Saída",
-                    "data": "10/07/2026",
-                    "descricao": "Ponta de Agulha",
-                    "categoria": "Aviamento",
-                    "valor_entrada": 0.00,
-                    "valor_saida": 19.10,
-                    "forma_pagamento": "Débito"
-                },
-                {
-                    "id": "FIN-1003",
-                    "tipo": "Entrada",
-                    "data": "13/07/2026",
-                    "descricao": "Bordado Nayara",
-                    "categoria": "Restante",
-                    "valor_entrada": 100.00,
-                    "valor_saida": 0.00,
-                    "forma_pagamento": "Pix"
-                },
-                {
-                    "id": "FIN-1004",
-                    "tipo": "Saída",
-                    "data": "14/07/2026",
-                    "descricao": "Ponta de Agulha",
-                    "categoria": "Aviamento",
-                    "valor_entrada": 0.00,
-                    "valor_saida": 13.15,
-                    "forma_pagamento": "Débito"
-                },
-                {
-                    "id": "FIN-1005",
-                    "tipo": "Saída",
-                    "data": "14/07/2026",
-                    "descricao": "Grafitte",
-                    "categoria": "Papelaria",
-                    "valor_entrada": 0.00,
-                    "valor_saida": 23.50,
-                    "forma_pagamento": "Débito"
-                },
-                {
-                    "id": "FIN-1006",
-                    "tipo": "Saída",
-                    "data": "23/07/2026",
-                    "descricao": "Ju Aviamentos",
-                    "categoria": "Aviamento",
-                    "valor_entrada": 0.00,
-                    "valor_saida": 12.70,
-                    "forma_pagamento": "Débito"
-                },
-                {
-                    "id": "FIN-1007",
-                    "tipo": "Saída",
-                    "data": "24/07/2026",
-                    "descricao": "Cristo Rei Grafica",
-                    "categoria": "Papelaria",
-                    "valor_entrada": 0.00,
-                    "valor_saida": 4.50,
-                    "forma_pagamento": "Débito"
-                }
-            ]
-            self.salvar_lancamentos(dados_iniciais)
+            self.salvar_lancamentos([])
 
     def carregar_lancamentos(self):
         """Carrega a lista de lançamentos financeiros do arquivo JSON."""

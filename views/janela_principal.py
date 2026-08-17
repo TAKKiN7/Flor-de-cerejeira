@@ -8,6 +8,7 @@ from components.sidebar_button import SidebarButton
 from views.boas_vindas_view import BoasVindasView
 from views.generic_module_view import GenericModuleView
 from views.pedidos_view import PedidosView
+from views.pedidos_entregues_view import PedidosEntreguesView
 from views.clientes_view import ClientesView
 from views.agenda_view import AgendaView
 from views.estoque_view import EstoqueView
@@ -84,7 +85,7 @@ class JanelaFlorDeCerejeira(ctk.CTk):
             
         # Carregar ícones do menu
         self.icons = {}
-        items = ["boas_vindas", "orcamento", "pedidos", "clientes", "agenda", "estoque", "financeiro", "cursos", "configuracoes", "suporte"]
+        items = ["boas_vindas", "orcamento", "pedidos", "pedidos_entregues", "clientes", "agenda", "estoque", "financeiro", "cursos", "configuracoes", "suporte"]
         for item in items:
             norm_p = os.path.join(icons_dir, f"{item}_normal.png")
             act_p = os.path.join(icons_dir, f"{item}_active.png")
@@ -96,6 +97,10 @@ class JanelaFlorDeCerejeira(ctk.CTk):
                 "normal": ctk.CTkImage(light_image=img_norm, dark_image=img_norm, size=(22, 22)) if img_norm else None,
                 "active": ctk.CTkImage(light_image=img_act, dark_image=img_act, size=(22, 22)) if img_act else None
             }
+            
+        # Fallback para ícones de pedidos entregues se não houver arquivo específico
+        if self.icons["pedidos_entregues"]["normal"] is None:
+            self.icons["pedidos_entregues"] = self.icons["pedidos"]
 
     def criar_sidebar(self):
         """Cria o menu lateral completo conforme a referência."""
@@ -110,7 +115,7 @@ class JanelaFlorDeCerejeira(ctk.CTk):
         sidebar.grid(row=0, column=0, sticky="nsew")
         sidebar.grid_propagate(False)
         sidebar.grid_columnconfigure(0, weight=1)
-        sidebar.grid_rowconfigure(2, weight=1)  # Espaçador entre menus principais e inferiores
+        sidebar.grid_rowconfigure(1, weight=1)  # A área de navegação principal (menu_frame) cresce verticalmente
         
         # --- Topo: Logotipo e Marca ---
         brand_frame = ctk.CTkFrame(sidebar, fg_color="transparent")
@@ -138,14 +143,22 @@ class JanelaFlorDeCerejeira(ctk.CTk):
         lbl_sub.pack(anchor="center", pady=(2, 0))
         
         # --- Seção de Navegação Principal ---
-        menu_frame = ctk.CTkFrame(sidebar, fg_color="transparent")
-        menu_frame.grid(row=1, column=0, padx=16, sticky="ew")
+        menu_frame = ctk.CTkScrollableFrame(
+            sidebar, 
+            fg_color="transparent",
+            corner_radius=0,
+            border_width=0,
+            scrollbar_button_color=PALETTE["active_pill"],
+            scrollbar_button_hover_color=PALETTE["active_pill_hover"]
+        )
+        menu_frame.grid(row=1, column=0, padx=16, sticky="nsew")
         menu_frame.grid_columnconfigure(0, weight=1)
         
         main_menu_items = [
             ("boas_vindas", "Boas-vindas"),
             ("orcamento", "Orçamento"),
             ("pedidos", "Pedidos"),
+            ("pedidos_entregues", "Pedidos Entregues"),
             ("clientes", "Clientes"),
             ("agenda", "Agenda"),
             ("estoque", "Estoque"),
@@ -231,6 +244,7 @@ class JanelaFlorDeCerejeira(ctk.CTk):
         self.views["boas_vindas"] = BoasVindasView(self.container, mascot_image=self.img_mascot)
         self.views["orcamento"] = OrcamentoView(self.container, base_dir=self.base_dir)
         self.views["pedidos"] = PedidosView(self.container, base_dir=self.base_dir)
+        self.views["pedidos_entregues"] = PedidosEntreguesView(self.container, base_dir=self.base_dir)
         self.views["clientes"] = ClientesView(self.container, base_dir=self.base_dir)
         self.views["agenda"] = AgendaView(self.container, base_dir=self.base_dir)
         self.views["estoque"] = EstoqueView(self.container, base_dir=self.base_dir)

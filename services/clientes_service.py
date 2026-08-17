@@ -13,33 +13,10 @@ class ClientesService:
         self.garantir_arquivo_dados()
 
     def garantir_arquivo_dados(self):
-        """Cria o diretório e o arquivo JSON inicial com dados de exemplo caso não existam."""
+        """Cria o diretório e o arquivo JSON inicial caso não existam."""
         os.makedirs(self.data_dir, exist_ok=True)
         if not os.path.exists(self.data_file) or os.path.getsize(self.data_file) <= 2:
-            dados_iniciais = [
-                {
-                    "id": "CLI-1001",
-                    "nome_cliente": "Camila Oliveira",
-                    "endereco": "Rua das Flores, 123 - São Paulo/SP",
-                    "data_ultimo_pedido": "04/08/2026",
-                    "contato": "(11) 98765-4321"
-                },
-                {
-                    "id": "CLI-1002",
-                    "nome_cliente": "Beatriz Lima",
-                    "endereco": "Av. Paulista, 1500, Apto 42 - São Paulo/SP",
-                    "data_ultimo_pedido": "03/08/2026",
-                    "contato": "(11) 91234-5678"
-                },
-                {
-                    "id": "CLI-1003",
-                    "nome_cliente": "Juliana Santos",
-                    "endereco": "Rua Bela Cintra, 890 - São Paulo/SP",
-                    "data_ultimo_pedido": "01/08/2026",
-                    "contato": "juliana.santos@email.com"
-                }
-            ]
-            self.salvar_clientes(dados_iniciais)
+            self.salvar_clientes([])
 
     def carregar_clientes(self):
         """Carrega a lista de clientes do arquivo JSON."""

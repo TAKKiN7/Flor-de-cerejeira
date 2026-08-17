@@ -1,24 +1,21 @@
+import os
 import customtkinter as ctk
 from tkinter import ttk, messagebox
+from datetime import datetime
 from config.settings import PALETTE, get_color
 from services.pedidos_service import PedidosService
-from services.clientes_service import ClientesService
-from services.pdf_service import PDFService
-from components.pedido_form_modal import PedidoFormModal
 
-class PedidosView(ctk.CTkFrame):
-    """Módulo completo de Gerenciamento de Pedidos com Tabela, CRUD e Persistência em JSON integrados ao Estoque e Clientes."""
+class PedidosEntreguesView(ctk.CTkFrame):
+    """Módulo completo de Visualização de Pedidos Entregues com Busca, Navegação Mensal e Relatórios PDF."""
     
     def __init__(self, master, base_dir=None, **kwargs):
         super().__init__(master, fg_color=PALETTE["main_bg"], corner_radius=0, **kwargs)
         
         self.base_dir = base_dir
         self.service = PedidosService(base_dir=base_dir)
-        self.clientes_service = ClientesService(base_dir=base_dir)
         self.pedidos_cache = []
         
         # Estado de controle de mês/ano
-        from datetime import datetime
         self.hoje = datetime.now()
         self.mes_atual = self.hoje.month
         self.ano_atual = self.hoje.year
@@ -46,14 +43,14 @@ class PedidosView(ctk.CTkFrame):
         self.atualizar_tabela()
 
     def criar_cabecalho(self):
-        """Cria o cabeçalho superior do módulo de pedidos."""
+        """Cria o cabeçalho superior do módulo de pedidos entregues."""
         header_frame = ctk.CTkFrame(self, fg_color="transparent")
         header_frame.grid(row=0, column=0, sticky="ew", padx=40, pady=(28, 6))
         header_frame.grid_columnconfigure(0, weight=1)
         
         lbl_title = ctk.CTkLabel(
             header_frame,
-            text="Gestão de Pedidos",
+            text="Pedidos Entregues",
             font=ctk.CTkFont(family="Georgia", size=28, weight="bold"),
             text_color=PALETTE["title_text"],
             anchor="w"
@@ -62,7 +59,7 @@ class PedidosView(ctk.CTkFrame):
         
         lbl_sub = ctk.CTkLabel(
             header_frame,
-            text="Gerencie as encomendas do atelier vinculadas ao banco de clientes e materiais do estoque.",
+            text="Consulte o histórico de encomendas entregues e gere relatórios de faturamento consolidado.",
             font=ctk.CTkFont(family="Segoe UI", size=14),
             text_color=PALETTE["subtitle_text"],
             anchor="w"
@@ -70,7 +67,7 @@ class PedidosView(ctk.CTkFrame):
         lbl_sub.pack(anchor="w", pady=(2, 0))
 
     def criar_barra_ferramentas(self):
-        """Cria os controles de busca, navegação de meses e botões de Novo, Editar e Excluir."""
+        """Cria os controles de busca, navegação de meses e botões de Ação."""
         tools_frame = ctk.CTkFrame(self, fg_color="transparent")
         tools_frame.grid(row=1, column=0, sticky="ew", padx=40, pady=(16, 16))
         tools_frame.grid_columnconfigure(0, weight=1)
@@ -80,7 +77,7 @@ class PedidosView(ctk.CTkFrame):
         # Campo de Pesquisa
         self.entry_pesquisa = ctk.CTkEntry(
             tools_frame,
-            placeholder_text="🔍 Pesquisar por cliente ou produto...",
+            placeholder_text="🔍 Pesquisar por cliente ou produto entregue...",
             height=42,
             corner_radius=12,
             border_color=PALETTE["card_border"],
@@ -146,26 +143,10 @@ class PedidosView(ctk.CTkFrame):
         actions_frame = ctk.CTkFrame(tools_frame, fg_color="transparent")
         actions_frame.grid(row=0, column=2, sticky="e")
         
-        # Botão Excluir
-        btn_excluir = ctk.CTkButton(
+        # Botão Reverter
+        btn_reverter = ctk.CTkButton(
             actions_frame,
-            text="🗑️ Excluir",
-            height=42,
-            corner_radius=12,
-            fg_color="transparent",
-            border_color="#E57373",
-            border_width=1,
-            text_color="#C62828",
-            hover_color="#FFEBEE",
-            font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
-            command=self.acao_excluir
-        )
-        btn_excluir.pack(side="left", padx=4)
-        
-        # Botão Editar
-        btn_editar = ctk.CTkButton(
-            actions_frame,
-            text="✏️ Editar",
+            text="↩️ Reverter",
             height=42,
             corner_radius=12,
             fg_color="transparent",
@@ -174,55 +155,23 @@ class PedidosView(ctk.CTkFrame):
             text_color=PALETTE["inactive_text"],
             hover_color=PALETTE["inactive_hover"],
             font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
-            command=self.acao_editar
+            command=self.acao_reverter_entrega
         )
-        btn_editar.pack(side="left", padx=4)
+        btn_reverter.pack(side="left", padx=4)
         
-        # Botão Entregue
-        btn_entregue = ctk.CTkButton(
+        # Botão Gerar Relatório
+        self.btn_relatorio = ctk.CTkButton(
             actions_frame,
-            text="📦 Entregue",
-            height=42,
-            corner_radius=12,
-            fg_color="transparent",
-            border_color="#4CAF50",
-            border_width=1,
-            text_color="#2E7D32",
-            hover_color="#E8F5E9",
-            font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
-            command=self.acao_marcar_entregue
-        )
-        btn_entregue.pack(side="left", padx=4)
-        
-        # Botão Exportar PDF
-        btn_pdf = ctk.CTkButton(
-            actions_frame,
-            text="📄 PDF",
-            height=42,
-            corner_radius=12,
-            fg_color="transparent",
-            border_color=PALETTE["card_border"],
-            border_width=1,
-            text_color=PALETTE["inactive_text"],
-            hover_color=PALETTE["inactive_hover"],
-            font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
-            command=self.acao_exportar_pdf
-        )
-        btn_pdf.pack(side="left", padx=4)
-
-        # Botão Adicionar
-        self.btn_novo = ctk.CTkButton(
-            actions_frame,
-            text="+ Novo Pedido",
+            text="📊 Gerar Relatório",
             height=42,
             corner_radius=12,
             fg_color=PALETTE["active_pill"],
             hover_color=PALETTE["active_pill_hover"],
             text_color="#FFFFFF",
             font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
-            command=self.acao_adicionar
+            command=self.acao_gerar_relatorio
         )
-        self.btn_novo.pack(side="left", padx=(4, 0))
+        self.btn_relatorio.pack(side="left", padx=(4, 0))
 
     def criar_tabela_pedidos(self):
         """Cria e estiliza a tabela ttk.Treeview com barras de rolagem."""
@@ -237,7 +186,6 @@ class PedidosView(ctk.CTkFrame):
         table_container.grid_columnconfigure(0, weight=1)
         table_container.grid_rowconfigure(0, weight=1)
         
-        # Estilização do Treeview usando cores puras via get_color
         self.atualizar_estilo_tema()
         
         colunas = ("id", "data_pedido", "nome_cliente", "produto", "valor_produto", "data_entrega")
@@ -246,11 +194,10 @@ class PedidosView(ctk.CTkFrame):
             table_container,
             columns=colunas,
             show="headings",
-            style="Pedidos.Treeview",
+            style="PedidosEntregues.Treeview",
             selectmode="browse"
         )
         
-        # Definição das colunas
         self.tree.heading("id", text="ID Pedido", anchor="w")
         self.tree.heading("data_pedido", text="Data do Pedido", anchor="w")
         self.tree.heading("nome_cliente", text="Nome do Cliente", anchor="w")
@@ -265,7 +212,6 @@ class PedidosView(ctk.CTkFrame):
         self.tree.column("valor_produto", width=140, minwidth=110, anchor="w")
         self.tree.column("data_entrega", width=130, minwidth=110, anchor="w")
         
-        # Scrollbar vertical estilizada em rosa
         scrollbar = ctk.CTkScrollbar(
             table_container,
             orientation="vertical",
@@ -277,9 +223,6 @@ class PedidosView(ctk.CTkFrame):
         
         self.tree.grid(row=0, column=0, sticky="nsew", padx=16, pady=16)
         scrollbar.grid(row=0, column=1, sticky="ns", pady=16)
-        
-        # Evento de duplo clique para editar
-        self.tree.bind("<Double-1>", lambda e: self.acao_editar())
 
     def atualizar_estilo_tema(self, modo=None):
         """Atualiza as cores da tabela TTK de acordo com o modo claro/escuro."""
@@ -297,17 +240,17 @@ class PedidosView(ctk.CTkFrame):
         act_pill = get_color(PALETTE["active_pill"], modo)
         
         style.configure(
-            "Pedidos.Treeview.Heading",
+            "PedidosEntregues.Treeview.Heading",
             background=sb_bg,
             foreground=br_title,
             font=("Segoe UI", 11, "bold"),
             rowheight=38,
             relief="flat"
         )
-        style.map("Pedidos.Treeview.Heading", background=[('active', in_hover)])
+        style.map("PedidosEntregues.Treeview.Heading", background=[('active', in_hover)])
         
         style.configure(
-            "Pedidos.Treeview",
+            "PedidosEntregues.Treeview",
             background=card_bg,
             fieldbackground=card_bg,
             foreground=t_text,
@@ -316,7 +259,7 @@ class PedidosView(ctk.CTkFrame):
             borderwidth=0
         )
         style.map(
-            "Pedidos.Treeview",
+            "PedidosEntregues.Treeview",
             background=[('selected', act_pill), ('focus', act_pill)],
             foreground=[('selected', '#FFFFFF'), ('focus', '#FFFFFF')]
         )
@@ -343,34 +286,20 @@ class PedidosView(ctk.CTkFrame):
         mes_nome = self.MESES[self.mes_selecionado - 1]
         self.lbl_mes_selecionado.configure(text=f"{mes_nome} {self.ano_selecionado}")
 
-    def verificar_bloqueio_novo_pedido(self):
-        if self.mes_selecionado == self.mes_atual and self.ano_selecionado == self.ano_atual:
-            self.btn_novo.configure(
-                state="normal", 
-                fg_color=PALETTE["active_pill"], 
-                hover_color=PALETTE["active_pill_hover"], 
-                text_color="#FFFFFF"
-            )
-        else:
-            self.btn_novo.configure(
-                state="disabled", 
-                fg_color=("#E5E5E5", "#2D2D2D"), 
-                text_color=("#A0A0A0", "#606060")
-            )
-
     def filtrar_por_mes_selecionado(self, lista_pedidos):
         filtrados = []
         for p in lista_pedidos:
-            data_str = p.get("data_pedido", "")
-            try:
-                partes = data_str.split("/")
-                if len(partes) == 3:
-                    mes_p = int(partes[1])
-                    ano_p = int(partes[2])
-                    if mes_p == self.mes_selecionado and ano_p == self.ano_selecionado and not p.get("entregue", False):
-                        filtrados.append(p)
-            except (ValueError, IndexError):
-                pass
+            if p.get("entregue", False):
+                data_str = p.get("data_pedido", "")
+                try:
+                    partes = data_str.split("/")
+                    if len(partes) == 3:
+                        mes_p = int(partes[1])
+                        ano_p = int(partes[2])
+                        if mes_p == self.mes_selecionado and ano_p == self.ano_selecionado:
+                            filtrados.append(p)
+                except (ValueError, IndexError):
+                    pass
         return filtrados
 
     def atualizar_tabela(self):
@@ -378,7 +307,6 @@ class PedidosView(ctk.CTkFrame):
         self.pedidos_cache = self.service.carregar_pedidos()
         pedidos_filtrados = self.filtrar_por_mes_selecionado(self.pedidos_cache)
         self.renderizar_linhas(pedidos_filtrados)
-        self.verificar_bloqueio_novo_pedido()
 
     def renderizar_linhas(self, lista_pedidos):
         """Limpa a tabela e insere as linhas fornecidas."""
@@ -423,133 +351,32 @@ class PedidosView(ctk.CTkFrame):
         ]
         self.renderizar_linhas(filtrados)
 
-    def acao_adicionar(self):
-        """Abre o formulário modal para cadastrar um novo pedido."""
-        if not (self.mes_selecionado == self.mes_atual and self.ano_selecionado == self.ano_atual):
-            messagebox.showwarning(
-                "Ação Bloqueada", 
-                "Não é permitido cadastrar pedidos fora do mês atual.", 
-                parent=self
-            )
-            return
-
-        def on_save(dados):
-            try:
-                # Validar data do pedido digitada manualmente
-                from datetime import datetime
-                try:
-                    dt = datetime.strptime(dados["data_pedido"], "%d/%m/%Y")
-                    if dt.month != self.mes_atual or dt.year != self.ano_atual:
-                        messagebox.showerror(
-                            "Data Inválida", 
-                            "Só é permitido cadastrar pedidos no mês atual.", 
-                            parent=modal
-                        )
-                        return
-                except ValueError:
-                    pass  # Deixa o backend do service validar o formato do datetime
-                
-                self.service.adicionar_pedido(
-                    data_pedido=dados["data_pedido"],
-                    nome_cliente=dados["nome_cliente"],
-                    produto=dados["produto"],
-                    valor_produto=dados["valor_produto"],
-                    data_entrega=dados["data_entrega"],
-                    itens_usados=dados.get("itens_usados", [])
-                )
-                self.atualizar_tabela()
-                messagebox.showinfo("Sucesso", "Pedido cadastrado com sucesso e materiais abatidos do estoque!", parent=self)
-                modal.destroy()
-            except Exception as e:
-                messagebox.showerror("Erro de Validação", str(e), parent=modal)
-
-        modal = PedidoFormModal(
-            self,
-            title="Adicionar Novo Pedido",
-            on_save=on_save,
-            estoque_service=self.service.estoque_service,
-            clientes_service=self.clientes_service,
-            base_dir=self.base_dir
-        )
-
-    def acao_marcar_entregue(self):
-        """Marca o pedido selecionado como entregue e remove da lista de pendentes."""
+    def acao_reverter_entrega(self):
+        """Reverte o pedido selecionado de entregue para pendente."""
         selecionado = self.tree.selection()
         if not selecionado:
-            messagebox.showwarning("Seleção Necessária", "Por favor, selecione um pedido na tabela para marcar como entregue.", parent=self)
+            messagebox.showwarning("Seleção Necessária", "Por favor, selecione um pedido para reverter.", parent=self)
             return
             
         pedido_id = selecionado[0]
-        confirmar = messagebox.askyesno("Confirmar Entrega", f"Deseja marcar o pedido {pedido_id} como entregue? Ele será movido para a lista de pedidos entregues.", parent=self)
+        confirmar = messagebox.askyesno("Confirmar Reversão", f"Tem certeza que deseja reverter o pedido {pedido_id} para pendente?", parent=self)
         if confirmar:
-            if self.service.marcar_como_entregue(pedido_id):
+            if self.service.reverter_entrega(pedido_id):
                 self.atualizar_tabela()
-                messagebox.showinfo("Sucesso", "Pedido marcado como entregue com sucesso!", parent=self)
+                messagebox.showinfo("Sucesso", "Pedido movido de volta para pendentes!", parent=self)
 
-    def acao_editar(self):
-        """Abre o formulário modal para editar o pedido selecionado."""
-        selecionado = self.tree.selection()
-        if not selecionado:
-            messagebox.showwarning("Seleção Necessária", "Por favor, selecione um pedido na tabela para editar.", parent=self)
-            return
-            
-        pedido_id = selecionado[0]
-        pedido_atual = next((p for p in self.pedidos_cache if p["id"] == pedido_id), None)
-        
-        if not pedido_atual:
-            return
-
-        def on_save(dados):
-            try:
-                self.service.atualizar_pedido(
-                    pedido_id=pedido_id,
-                    data_pedido=dados["data_pedido"],
-                    nome_cliente=dados["nome_cliente"],
-                    produto=dados["produto"],
-                    valor_produto=dados["valor_produto"],
-                    data_entrega=dados["data_entrega"],
-                    itens_usados=dados.get("itens_usados", [])
-                )
-                self.atualizar_tabela()
-                messagebox.showinfo("Sucesso", "Pedido atualizado com sucesso e estoque recalculado!", parent=self)
-            except Exception as e:
-                messagebox.showerror("Erro de Validação", str(e), parent=self)
-
-        modal = PedidoFormModal(
-            self,
-            title=f"Editar Pedido {pedido_id}",
-            pedido_data=pedido_atual,
-            on_save=on_save,
-            estoque_service=self.service.estoque_service,
-            clientes_service=self.clientes_service,
-            base_dir=self.base_dir
-        )
-
-    def acao_excluir(self):
-        """Confirma e remove o pedido selecionado."""
-        selecionado = self.tree.selection()
-        if not selecionado:
-            messagebox.showwarning("Seleção Necessária", "Por favor, selecione um pedido na tabela para excluir.", parent=self)
-            return
-            
-        pedido_id = selecionado[0]
-        confirmar = messagebox.askyesno("Confirmar Exclusão", f"Tem certeza que deseja remover o pedido {pedido_id}? Os materiais do estoque serão devolvidos.", parent=self)
-        if confirmar:
-            if self.service.remover_pedido(pedido_id):
-                self.atualizar_tabela()
-                messagebox.showinfo("Sucesso", "Pedido removido com sucesso e materiais devolvidos ao estoque!", parent=self)
-
-    def acao_exportar_pdf(self):
-        """Exporta a lista de pedidos atual para PDF com seleção de arquivo."""
-        if not self.pedidos_cache:
-            messagebox.showwarning("Sem Dados", "Não há pedidos para exportar no momento.", parent=self)
+    def acao_gerar_relatorio(self):
+        """Gera um PDF contendo o relatório financeiro e o número de pedidos entregues."""
+        pedidos_mes = self.filtrar_por_mes_selecionado(self.pedidos_cache)
+        if not pedidos_mes:
+            messagebox.showwarning("Sem Dados", "Não há pedidos entregues para exportar no mês selecionado.", parent=self)
             return
 
         colunas = ["ID Pedido", "Data Pedido", "Nome do Cliente", "Produto / Encomenda", "Valor (R$)", "Data Entrega"]
         linhas = []
         total_val = 0.0
 
-        for p in self.pedidos_cache:
+        for p in pedidos_mes:
             try:
                 val_num = float(p.get("valor_produto", 0))
             except (ValueError, TypeError):
@@ -566,13 +393,15 @@ class PedidosView(ctk.CTkFrame):
                 p.get("data_entrega", "-")
             ])
 
+        mes_nome = self.MESES[self.mes_selecionado - 1]
         totais_info = {
-            "Total de Pedidos": len(linhas),
-            "Valor Total Acumulado": f"R$ {total_val:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+            "Quantidade de Pedidos Entregues": len(linhas),
+            "Faturamento Total Acumulado": f"R$ {total_val:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
         }
 
+        from services.pdf_service import PDFService
         PDFService.exportar_tabela_pdf(
-            titulo_documento="Relatorio_de_Pedidos",
+            titulo_documento=f"Pedidos Entregues - {mes_nome} de {self.ano_selecionado}",
             colunas_titulos=colunas,
             dados_linhas=linhas,
             totais_info=totais_info,

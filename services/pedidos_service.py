@@ -16,46 +16,10 @@ class PedidosService:
         self.garantir_arquivo_dados()
 
     def garantir_arquivo_dados(self):
-        """Cria o diretório e o arquivo JSON inicial com dados de exemplo caso não existam."""
+        """Cria o diretório e o arquivo JSON inicial caso não existam."""
         os.makedirs(self.data_dir, exist_ok=True)
         if not os.path.exists(self.data_file) or os.path.getsize(self.data_file) <= 2:
-            dados_iniciais = [
-                {
-                    "id": "PED-1001",
-                    "data_pedido": "04/08/2026",
-                    "nome_cliente": "Camila Oliveira",
-                    "produto": "Quadro Floral Aquarela 30x40",
-                    "valor_produto": "98.50",
-                    "data_entrega": "12/08/2026",
-                    "itens_usados": [
-                        {"item_id": "EST-1001", "nome": "Papel Canson Aquarela 300g (Folha A3)", "quantidade": 1.0, "preco_unitario": 8.50, "subtotal": 8.50},
-                        {"item_id": "EST-1003", "nome": "Moldura de Madeira 30x40cm", "quantidade": 2.0, "preco_unitario": 45.00, "subtotal": 90.00}
-                    ]
-                },
-                {
-                    "id": "PED-1002",
-                    "data_pedido": "03/08/2026",
-                    "nome_cliente": "Beatriz Lima",
-                    "produto": "Convite de Casamento Botânico (Kit 50 un)",
-                    "valor_produto": "42.50",
-                    "data_entrega": "20/08/2026",
-                    "itens_usados": [
-                        {"item_id": "EST-1001", "nome": "Papel Canson Aquarela 300g (Folha A3)", "quantidade": 5.0, "preco_unitario": 8.50, "subtotal": 42.50}
-                    ]
-                },
-                {
-                    "id": "PED-1003",
-                    "data_pedido": "01/08/2026",
-                    "nome_cliente": "Juliana Santos",
-                    "produto": "Caneca Personalizada Ilustração Hanna",
-                    "valor_produto": "18.00",
-                    "data_entrega": "08/08/2026",
-                    "itens_usados": [
-                        {"item_id": "EST-1005", "nome": "Caneca Porcelana Branca 325ml", "quantidade": 1.0, "preco_unitario": 18.00, "subtotal": 18.00}
-                    ]
-                }
-            ]
-            self.salvar_pedidos(dados_iniciais)
+            self.salvar_pedidos([])
 
     def carregar_pedidos(self):
         """Carrega a lista de pedidos do arquivo JSON."""
@@ -103,7 +67,8 @@ class PedidosService:
             "produto": produto,
             "valor_produto": str(valor_produto),
             "data_entrega": data_entrega,
-            "itens_usados": itens_usados
+            "itens_usados": itens_usados,
+            "entregue": False
         }
         pedidos.append(novo_pedido)
         self.salvar_pedidos(pedidos)
@@ -140,6 +105,8 @@ class PedidosService:
         pedido_antigo["valor_produto"] = str(valor_produto)
         pedido_antigo["data_entrega"] = data_entrega
         pedido_antigo["itens_usados"] = itens_usados
+        if "entregue" not in pedido_antigo:
+            pedido_antigo["entregue"] = False
 
         self.salvar_pedidos(pedidos)
         return True
@@ -157,4 +124,24 @@ class PedidosService:
 
         pedidos_filtrados = [p for p in pedidos if p["id"] != pedido_id]
         self.salvar_pedidos(pedidos_filtrados)
+        return True
+
+    def marcar_como_entregue(self, pedido_id):
+        """Marca um pedido como entregue pelo ID."""
+        pedidos = self.carregar_pedidos()
+        pedido = next((p for p in pedidos if p["id"] == pedido_id), None)
+        if not pedido:
+            return False
+        pedido["entregue"] = True
+        self.salvar_pedidos(pedidos)
+        return True
+
+    def reverter_entrega(self, pedido_id):
+        """Reverte o status de entregue de um pedido de volta para pendente."""
+        pedidos = self.carregar_pedidos()
+        pedido = next((p for p in pedidos if p["id"] == pedido_id), None)
+        if not pedido:
+            return False
+        pedido["entregue"] = False
+        self.salvar_pedidos(pedidos)
         return True

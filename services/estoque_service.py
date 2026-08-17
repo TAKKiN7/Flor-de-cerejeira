@@ -13,60 +13,10 @@ class EstoqueService:
         self.garantir_arquivo_dados()
 
     def garantir_arquivo_dados(self):
-        """Cria o diretório e o arquivo JSON inicial com itens de exemplo caso não existam."""
+        """Cria o diretório e o arquivo JSON inicial caso não existam."""
         os.makedirs(self.data_dir, exist_ok=True)
         if not os.path.exists(self.data_file):
-            dados_iniciais = [
-                {
-                    "id": "EST-1001",
-                    "nome": "Papel Canson Aquarela 300g (Folha A3)",
-                    "categoria": "Papéis",
-                    "quantidade": 45.0,
-                    "unidade": "folha",
-                    "preco_unitario": 8.50
-                },
-                {
-                    "id": "EST-1002",
-                    "nome": "Tinta Guache Rosa Rosa 250ml",
-                    "categoria": "Tintas",
-                    "quantidade": 12.0,
-                    "unidade": "ml",
-                    "preco_unitario": 22.00
-                },
-                {
-                    "id": "EST-1003",
-                    "nome": "Moldura de Madeira 30x40cm",
-                    "categoria": "Molduras",
-                    "quantidade": 8.0,
-                    "unidade": "un",
-                    "preco_unitario": 45.00
-                },
-                {
-                    "id": "EST-1004",
-                    "nome": "Pincel Chato de Cerda Macia nº 10",
-                    "categoria": "Pincéis",
-                    "quantidade": 15.0,
-                    "unidade": "un",
-                    "preco_unitario": 14.90
-                },
-                {
-                    "id": "EST-1005",
-                    "nome": "Caneca Porcelana Branca 325ml",
-                    "categoria": "Insumos",
-                    "quantidade": 20.0,
-                    "unidade": "un",
-                    "preco_unitario": 18.00
-                },
-                {
-                    "id": "EST-1006",
-                    "nome": "Fita Adesiva Decorativa Washi Tape",
-                    "categoria": "Embalagens",
-                    "quantidade": 5.0,
-                    "unidade": "un",
-                    "preco_unitario": 7.50
-                }
-            ]
-            self.salvar_estoque(dados_iniciais)
+            self.salvar_estoque([])
 
     def carregar_estoque(self):
         """Carrega a lista de itens do estoque do arquivo JSON."""

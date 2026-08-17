@@ -16,37 +16,10 @@ class CursosService:
         self.garantir_arquivo_dados()
 
     def garantir_arquivo_dados(self):
-        """Cria o diretório e o arquivo JSON inicial com cursos de exemplo caso não existam."""
+        """Cria o diretório e o arquivo JSON inicial caso não existam."""
         os.makedirs(self.data_dir, exist_ok=True)
         if not os.path.exists(self.data_file) or os.path.getsize(self.data_file) <= 2:
-            dados_iniciais = [
-                {
-                    "id": "CRS-1001",
-                    "titulo": "Costura Criativa para Iniciantes",
-                    "categoria": "Costura",
-                    "descricao": "Aprenda o manuseio da máquina, tipos de tecidos e confeccione bolsas e necessaires.",
-                    "data_criacao": datetime.now().strftime("%d/%m/%Y"),
-                    "modulos": [
-                        {"id": "MOD-1", "titulo": "Módulo 1: Conhecendo a Máquina e Linhas", "concluido": True},
-                        {"id": "MOD-2", "titulo": "Módulo 2: Leitura de Moldes e Corte do Tecido", "concluido": True},
-                        {"id": "MOD-3", "titulo": "Módulo 3: Montagem de Necessaires", "concluido": False},
-                        {"id": "MOD-4", "titulo": "Módulo 4: Colocação de Zíper e Acabamentos", "concluido": False}
-                    ]
-                },
-                {
-                    "id": "CRS-1002",
-                    "titulo": "Bordado Livre e Ponto Avançado",
-                    "categoria": "Bordado",
-                    "descricao": "Pontos decorativos em bastidor e aplicação de detalhes florais em tecidos nobres.",
-                    "data_criacao": datetime.now().strftime("%d/%m/%Y"),
-                    "modulos": [
-                        {"id": "MOD-1", "titulo": "Módulo 1: Pontos Básicos (Haste, Nó Francês)", "concluido": True},
-                        {"id": "MOD-2", "titulo": "Módulo 2: Matiz e Sombreamento", "concluido": True},
-                        {"id": "MOD-3", "titulo": "Módulo 3: Finalização de Bastidor", "concluido": True}
-                    ]
-                }
-            ]
-            self.salvar_cursos(dados_iniciais)
+            self.salvar_cursos([])
 
     def carregar_cursos(self):
         """Carrega a lista de cursos do arquivo JSON."""

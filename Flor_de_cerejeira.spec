@@ -1,11 +1,14 @@
 # -*- mode: python ; coding: utf-8 -*-
+import os
+import customtkinter
 
+customtkinter_path = os.path.dirname(customtkinter.__file__)
 
 a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
-    datas=[('assets', 'assets'), ('c:/Users/Nath/Documents/Projetos Python/Flor_de_cerejeira_Sistema/.venv/Lib/site-packages/customtkinter', 'customtkinter')],
+    datas=[('assets', 'assets'), (customtkinter_path, 'customtkinter')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

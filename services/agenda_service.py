@@ -17,27 +17,10 @@ class AgendaService:
         self.garantir_arquivo_dados()
 
     def garantir_arquivo_dados(self):
-        """Cria o diretório e o arquivo JSON inicial com notas de exemplo caso não existam."""
+        """Cria o diretório e o arquivo JSON inicial caso não existam."""
         os.makedirs(self.data_dir, exist_ok=True)
         if not os.path.exists(self.data_file):
-            hoje = datetime.now().strftime("%d/%m/%Y")
-            notas_iniciais = [
-                {
-                    "id": "NOT-1001",
-                    "data": hoje,
-                    "titulo": "🎨 Organizar paletas de cores do atelier",
-                    "horario": "10:00",
-                    "tipo": "nota"
-                },
-                {
-                    "id": "NOT-1002",
-                    "data": "15/08/2026",
-                    "titulo": "📦 Enviar orçamento para novos clientes",
-                    "horario": "15:30",
-                    "tipo": "nota"
-                }
-            ]
-            self.salvar_notas(notas_iniciais)
+            self.salvar_notas([])
 
     def carregar_notas(self):
         """Carrega a lista de notas do arquivo JSON."""
